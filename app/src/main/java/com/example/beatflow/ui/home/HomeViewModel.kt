@@ -1,55 +1,90 @@
 package com.example.beatflow.ui.home
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.beatflow.data.model.HomeTab
-import com.example.beatflow.data.model.Song
-import com.example.beatflow.data.repository.SampleSongRepository
+import androidx.lifecycle.viewModelScope
+import com.example.beatflow.data.di.NetworkModule
+import com.example.beatflow.domain.model.HomeTab
+import com.example.beatflow.domain.model.Song
+import com.example.beatflow.domain.playback.MusicPlayer
+import com.example.beatflow.domain.usecase.GetOnlineSongsUseCase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class HomeViewModel(
-    private val repository: SampleSongRepository = SampleSongRepository()
+    private val getOnlineSongsUseCase: GetOnlineSongsUseCase = NetworkModule.provideGetOnlineSongsUseCase(),
+    private val musicPlayer: MusicPlayer = NetworkModule.provideMusicPlayer()
 ) : ViewModel() {
 
-    private val _selectedTab = MutableLiveData(HomeTab.ONLINE)
-    val selectedTab: LiveData<HomeTab> = _selectedTab
+    private val _selectedTab = MutableStateFlow(HomeTab.ONLINE)
+    val selectedTab: StateFlow<HomeTab> = _selectedTab.asStateFlow()
 
-    private val _songs = MutableLiveData<List<Song>>()
-    val songs: LiveData<List<Song>> = _songs
+    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
+    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    private val _currentPlayingSong = MutableLiveData<Song?>()
-    val currentPlayingSong: LiveData<Song?> = _currentPlayingSong
-
-    private val _isPlaying = MutableLiveData(false)
-    val isPlaying: LiveData<Boolean> = _isPlaying
+    // Playback state exposed directly from the music player
+    val currentPlayingSong: StateFlow<Song?> = musicPlayer.currentSong
+    val isPlaying: StateFlow<Boolean> = musicPlayer.isPlaying
+    val isBuffering: StateFlow<Boolean> = musicPlayer.isBuffering
+    val playbackError: StateFlow<String?> = musicPlayer.playbackError
 
     init {
-        loadSongsForTab(HomeTab.ONLINE)
+        loadOnlineSongs()
     }
 
     fun selectTab(tab: HomeTab) {
-        if (_selectedTab.value != tab) {
-            _selectedTab.value = tab
-            loadSongsForTab(tab)
+        if (_selectedTab.value == tab) return
+        _selectedTab.value = tab
+
+        when (tab) {
+            HomeTab.ONLINE -> loadOnlineSongs()
+            HomeTab.DEVICE -> {
+                // Device songs feature is scoped for a future task
+                _uiState.value = HomeUiState.Empty(
+                    title = "No Songs Available",
+                    message = "No songs found on your device yet."
+                )
+            }
         }
     }
 
-    private fun loadSongsForTab(tab: HomeTab) {
-        _songs.value = repository.getSongsForTab(tab)
+    fun loadOnlineSongs(term: String = "pop") {
+        viewModelScope.launch {
+            _uiState.value = HomeUiState.Loading
+
+            getOnlineSongsUseCase(term = term)
+                .onSuccess { songs ->
+                    if (songs.isEmpty()) {
+                        _uiState.value = HomeUiState.Empty(
+                            title = "No Songs Available",
+                            message = "No songs found for \"$term\"."
+                        )
+                    } else {
+                        _uiState.value = HomeUiState.Success(songs)
+                    }
+                }
+                .onFailure { error ->
+                    val readableMessage = when {
+                        error.message?.contains("Unable to resolve host", ignoreCase = true) == true ->
+                            "No internet connection. Please check your network and try again."
+                        error.message?.contains("timeout", ignoreCase = true) == true ->
+                            "Connection timed out. Please try again."
+                        else -> error.localizedMessage ?: "Failed to load online songs."
+                    }
+                    _uiState.value = HomeUiState.Error(
+                        title = "Unable to Load Songs",
+                        message = readableMessage
+                    )
+                }
+        }
     }
 
     fun playSong(song: Song) {
-        if (_currentPlayingSong.value?.id == song.id) {
-            _isPlaying.value = !(_isPlaying.value ?: false)
-        } else {
-            _currentPlayingSong.value = song
-            _isPlaying.value = true
-        }
+        musicPlayer.togglePlayPause(song)
     }
 
     fun togglePlayPause() {
-        if (_currentPlayingSong.value != null) {
-            _isPlaying.value = !(_isPlaying.value ?: false)
-        }
+        musicPlayer.togglePlayPause()
     }
 }

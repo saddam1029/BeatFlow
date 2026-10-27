@@ -64,6 +64,19 @@
         app:layout_constraintTop_toBottomOf="@+id/viewTabDivider"
         tools:listitem="@layout/item_song" />
 
+    <!-- Loading Indicator -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:indeterminateTint="@color/home_accent_cyan"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/layoutMiniPlayer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/viewTabDivider"
+        tools:visibility="visible" />
+
     <!-- Clean Empty State for when no songs are available -->
     <LinearLayout
         android:id="@+id/layoutEmptyState"

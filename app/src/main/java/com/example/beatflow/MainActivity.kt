@@ -5,6 +5,7 @@ import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -13,14 +14,22 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.beatflow.data.model.HomeTab
-import com.example.beatflow.data.model.Song
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.example.beatflow.data.mapper.getHighResArtworkUrl
+import com.example.beatflow.domain.model.HomeTab
+import com.example.beatflow.domain.model.Song
+import com.example.beatflow.ui.home.HomeUiState
 import com.example.beatflow.ui.home.HomeViewModel
 import com.example.beatflow.ui.home.SongAdapter
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.tabs.TabLayout
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -31,7 +40,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var toolbarHome: MaterialToolbar
     private lateinit var tabLayout: TabLayout
     private lateinit var rvSongs: RecyclerView
+    private lateinit var progressBar: ProgressBar
     private lateinit var layoutEmptyState: LinearLayout
+    private lateinit var tvEmptyTitle: TextView
+    private lateinit var tvEmptySubtitle: TextView
     private lateinit var layoutMiniPlayer: View
     private lateinit var ivMiniPlayerArt: ImageView
     private lateinit var tvMiniPlayerTitle: TextView
@@ -56,7 +68,10 @@ class MainActivity : AppCompatActivity() {
         toolbarHome = findViewById(R.id.toolbarHome)
         tabLayout = findViewById(R.id.tabLayout)
         rvSongs = findViewById(R.id.rvSongs)
+        progressBar = findViewById(R.id.progressBar)
         layoutEmptyState = findViewById(R.id.layoutEmptyState)
+        tvEmptyTitle = findViewById(R.id.tvEmptyTitle)
+        tvEmptySubtitle = findViewById(R.id.tvEmptySubtitle)
         layoutMiniPlayer = findViewById(R.id.layoutMiniPlayer)
         ivMiniPlayerArt = findViewById(R.id.ivMiniPlayerArt)
         tvMiniPlayerTitle = findViewById(R.id.tvMiniPlayerTitle)
@@ -104,7 +119,7 @@ class MainActivity : AppCompatActivity() {
         rvSongs.apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = songAdapter
-            itemAnimator = null // smoother item updates
+            itemAnimator = null
         }
     }
 
@@ -115,46 +130,103 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun observeViewModel() {
-        // Observe song list changes
-        viewModel.songs.observe(this) { songs ->
-            if (songs.isNullOrEmpty()) {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // Collect UI state (Loading / Success / Empty / Error)
+                launch {
+                    viewModel.uiState.collect { state ->
+                        handleUiState(state)
+                    }
+                }
+
+                // Collect currently playing song
+                launch {
+                    viewModel.currentPlayingSong.collect { song ->
+                        if (song == null) {
+                            layoutMiniPlayer.visibility = View.GONE
+                        } else {
+                            layoutMiniPlayer.visibility = View.VISIBLE
+                            tvMiniPlayerTitle.text = song.trackName
+                            tvMiniPlayerArtist.text = song.artistName
+
+                            val artworkUrl = getHighResArtworkUrl(song.artworkUrl)
+                            if (!artworkUrl.isNullOrBlank()) {
+                                Glide.with(this@MainActivity)
+                                    .load(artworkUrl)
+                                    .placeholder(R.drawable.bg_artwork_placeholder)
+                                    .error(R.drawable.bg_artwork_error)
+                                    .fallback(R.drawable.bg_artwork_placeholder)
+                                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                    .centerCrop()
+                                    .into(ivMiniPlayerArt)
+                            } else {
+                                Glide.with(this@MainActivity).clear(ivMiniPlayerArt)
+                                ivMiniPlayerArt.setImageResource(R.drawable.bg_artwork_placeholder)
+                            }
+                        }
+                        updateAdapterPlayback()
+                    }
+                }
+
+                // Collect playback playing/paused status
+                launch {
+                    viewModel.isPlaying.collect { isPlaying ->
+                        val iconRes = if (isPlaying) {
+                            android.R.drawable.ic_media_pause
+                        } else {
+                            android.R.drawable.ic_media_play
+                        }
+                        btnMiniPlayerPlay.setImageResource(iconRes)
+                        updateAdapterPlayback()
+                    }
+                }
+
+                // Collect playback errors (e.g. invalid preview URL or streaming issues)
+                launch {
+                    viewModel.playbackError.collect { errorMsg ->
+                        if (!errorMsg.isNullOrBlank()) {
+                            Toast.makeText(this@MainActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun handleUiState(state: HomeUiState) {
+        when (state) {
+            is HomeUiState.Loading -> {
+                progressBar.visibility = View.VISIBLE
                 rvSongs.visibility = View.GONE
-                layoutEmptyState.visibility = View.VISIBLE
-            } else {
+                layoutEmptyState.visibility = View.GONE
+            }
+            is HomeUiState.Success -> {
+                progressBar.visibility = View.GONE
                 layoutEmptyState.visibility = View.GONE
                 rvSongs.visibility = View.VISIBLE
-                songAdapter.submitList(songs)
+                songAdapter.submitList(state.songs)
             }
-        }
-
-        // Observe currently selected song
-        viewModel.currentPlayingSong.observe(this) { song ->
-            if (song == null) {
-                layoutMiniPlayer.visibility = View.GONE
-            } else {
-                layoutMiniPlayer.visibility = View.VISIBLE
-                tvMiniPlayerTitle.text = song.title
-                tvMiniPlayerArtist.text = song.artist
+            is HomeUiState.Empty -> {
+                progressBar.visibility = View.GONE
+                rvSongs.visibility = View.GONE
+                layoutEmptyState.visibility = View.VISIBLE
+                tvEmptyTitle.text = state.title
+                tvEmptySubtitle.text = state.message
             }
-            updateAdapterPlayback()
-        }
-
-        // Observe playback state (playing / paused)
-        viewModel.isPlaying.observe(this) { isPlaying ->
-            val iconRes = if (isPlaying) {
-                android.R.drawable.ic_media_pause
-            } else {
-                android.R.drawable.ic_media_play
+            is HomeUiState.Error -> {
+                progressBar.visibility = View.GONE
+                rvSongs.visibility = View.GONE
+                layoutEmptyState.visibility = View.VISIBLE
+                tvEmptyTitle.text = state.title
+                tvEmptySubtitle.text = state.message
             }
-            btnMiniPlayerPlay.setImageResource(iconRes)
-            updateAdapterPlayback()
         }
     }
 
     private fun updateAdapterPlayback() {
-        val currentSongId = viewModel.currentPlayingSong.value?.id
-        val isPlaying = viewModel.isPlaying.value ?: false
-        songAdapter.updatePlaybackState(currentSongId, isPlaying)
+        val currentTrackId = viewModel.currentPlayingSong.value?.trackId
+        val isPlaying = viewModel.isPlaying.value
+        songAdapter.updatePlaybackState(currentTrackId, isPlaying)
     }
 
     private fun showSongOverflowMenu(anchorView: View, song: Song) {
@@ -163,11 +235,19 @@ class MainActivity : AppCompatActivity() {
         popup.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.action_share -> {
-                    Toast.makeText(this, getString(R.string.action_share_toast, song.title), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this,
+                        getString(R.string.action_share_toast, song.trackName),
+                        Toast.LENGTH_SHORT
+                    ).show()
                     true
                 }
                 R.id.action_delete -> {
-                    Toast.makeText(this, getString(R.string.action_delete_toast, song.title), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this,
+                        getString(R.string.action_delete_toast, song.trackName),
+                        Toast.LENGTH_SHORT
+                    ).show()
                     true
                 }
                 else -> false
