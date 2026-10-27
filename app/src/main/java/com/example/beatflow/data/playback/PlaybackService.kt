@@ -4,8 +4,10 @@ import android.app.PendingIntent
 import android.content.Intent
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.example.beatflow.MainActivity
@@ -27,7 +29,10 @@ class PlaybackService : MediaSessionService() {
             .setAudioAttributes(AudioAttributes.DEFAULT, /* handleAudioFocus= */ true)
             .setHandleAudioBecomingNoisy(true)
             .build()
-        player.repeatMode = ExoPlayer.REPEAT_MODE_ONE
+        player.repeatMode = Player.REPEAT_MODE_OFF
+
+        // Use DefaultMediaNotificationProvider which automatically picks up media3_notification_small_icon
+        setMediaNotificationProvider(DefaultMediaNotificationProvider(this))
 
         // Intent to return to MainActivity when notification is tapped
         val openAppIntent = Intent(this, MainActivity::class.java).apply {

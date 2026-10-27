@@ -397,10 +397,18 @@ class HomeViewModel(
     }
 
     fun playSong(song: Song) {
-        musicPlayer.togglePlayPause(song)
+        val currentList = when (_selectedTab.value) {
+            HomeTab.ONLINE -> allOnlineSongs
+            HomeTab.DEVICE -> allDeviceSongs
+        }
+        musicPlayer.playSong(song, currentList)
     }
 
     fun togglePlayPause() {
-        musicPlayer.togglePlayPause()
+        val currentList = when (_selectedTab.value) {
+            HomeTab.ONLINE -> allOnlineSongs
+            HomeTab.DEVICE -> allDeviceSongs
+        }
+        musicPlayer.togglePlayPause(null, currentList)
     }
 }

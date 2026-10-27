@@ -156,7 +156,7 @@ class Media3MusicPlayer(
         progressUpdateJob = null
     }
 
-    override fun playSong(song: Song) {
+    override fun playSong(song: Song, queue: List<Song>) {
         _playbackError.value = null
         _playbackProgress.value = 0
 
@@ -172,25 +172,36 @@ class Media3MusicPlayer(
             return
         }
 
-        songCache[song.trackId] = song
+        songCache.clear()
+        val mediaItems = mutableListOf<MediaItem>()
+        var startIndex = 0
+
+        val effectiveQueue = if (queue.isNotEmpty()) queue else listOf(song)
+        for ((index, s) in effectiveQueue.withIndex()) {
+            songCache[s.trackId] = s
+            if (s.trackId == song.trackId) {
+                startIndex = index
+            }
+            val mediaMetadata = MediaMetadata.Builder()
+                .setTitle(s.trackName)
+                .setArtist(s.artistName)
+                .setArtworkUri(s.artworkUrl?.let { Uri.parse(it) })
+                .build()
+
+            val mediaItem = MediaItem.Builder()
+                .setMediaId(s.trackId.toString())
+                .setUri(s.previewUrl?.trim() ?: "")
+                .setMediaMetadata(mediaMetadata)
+                .build()
+            mediaItems.add(mediaItem)
+        }
+
         _currentSong.value = song
 
         val controller = mediaController
         if (controller != null) {
-            val mediaMetadata = MediaMetadata.Builder()
-                .setTitle(song.trackName)
-                .setArtist(song.artistName)
-                .setArtworkUri(song.artworkUrl?.let { Uri.parse(it) })
-                .build()
-
-            val mediaItem = MediaItem.Builder()
-                .setMediaId(song.trackId.toString())
-                .setUri(previewUrl)
-                .setMediaMetadata(mediaMetadata)
-                .build()
-
-            controller.setMediaItem(mediaItem)
-            controller.repeatMode = Player.REPEAT_MODE_ONE
+            controller.setMediaItems(mediaItems, startIndex, 0L)
+            controller.repeatMode = Player.REPEAT_MODE_OFF
             controller.prepare()
             controller.play()
         } else {
@@ -209,9 +220,9 @@ class Media3MusicPlayer(
         startProgressTracker()
     }
 
-    override fun togglePlayPause(song: Song?) {
+    override fun togglePlayPause(song: Song?, queue: List<Song>) {
         if (song != null && song.trackId != _currentSong.value?.trackId) {
-            playSong(song)
+            playSong(song, queue)
         } else {
             if (_isPlaying.value) {
                 pause()
@@ -219,7 +230,7 @@ class Media3MusicPlayer(
                 if (_currentSong.value != null) {
                     resume()
                 } else if (song != null) {
-                    playSong(song)
+                    playSong(song, queue)
                 }
             }
         }

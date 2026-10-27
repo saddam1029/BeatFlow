@@ -14,10 +14,10 @@ interface MusicPlayer {
     val playbackProgress: StateFlow<Int>
     val playbackError: StateFlow<String?>
 
-    fun playSong(song: Song)
+    fun playSong(song: Song, queue: List<Song> = emptyList())
     fun pause()
     fun resume()
-    fun togglePlayPause(song: Song? = null)
+    fun togglePlayPause(song: Song? = null, queue: List<Song> = emptyList())
     fun stop()
     fun release()
 }
