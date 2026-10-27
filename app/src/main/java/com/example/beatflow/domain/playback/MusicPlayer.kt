@@ -11,6 +11,7 @@ interface MusicPlayer {
     val currentSong: StateFlow<Song?>
     val isPlaying: StateFlow<Boolean>
     val isBuffering: StateFlow<Boolean>
+    val playbackProgress: StateFlow<Int>
     val playbackError: StateFlow<String?>
 
     fun playSong(song: Song)

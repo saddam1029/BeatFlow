@@ -6,6 +6,7 @@ import com.example.beatflow.data.di.NetworkModule
 import com.example.beatflow.domain.model.HomeTab
 import com.example.beatflow.domain.model.Song
 import com.example.beatflow.domain.playback.MusicPlayer
+import com.example.beatflow.domain.usecase.GetDeviceSongsUseCase
 import com.example.beatflow.domain.usecase.GetOnlineSongsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.launch
 
 class HomeViewModel(
     private val getOnlineSongsUseCase: GetOnlineSongsUseCase = NetworkModule.provideGetOnlineSongsUseCase(),
+    private val getDeviceSongsUseCase: GetDeviceSongsUseCase = NetworkModule.provideGetDeviceSongsUseCase(),
     private val musicPlayer: MusicPlayer = NetworkModule.provideMusicPlayer()
 ) : ViewModel() {
 
@@ -27,9 +29,22 @@ class HomeViewModel(
     val currentPlayingSong: StateFlow<Song?> = musicPlayer.currentSong
     val isPlaying: StateFlow<Boolean> = musicPlayer.isPlaying
     val isBuffering: StateFlow<Boolean> = musicPlayer.isBuffering
+    val playbackProgress: StateFlow<Int> = musicPlayer.playbackProgress
     val playbackError: StateFlow<String?> = musicPlayer.playbackError
 
+    // Independent caches for Online and Device songs to ensure lists never mix
     private var allOnlineSongs: List<Song> = emptyList()
+    private var allDeviceSongs: List<Song> = emptyList()
+
+    private var onlineUiState: HomeUiState = HomeUiState.Loading
+    private var deviceUiState: HomeUiState = HomeUiState.Empty(
+        title = "No songs on this device",
+        message = "Music saved on your device\nwill appear here."
+    )
+
+    var hasDeviceSongsLoaded: Boolean = false
+        private set
+
     private var currentSearchQuery: String = ""
 
     init {
@@ -42,38 +57,46 @@ class HomeViewModel(
 
         when (tab) {
             HomeTab.ONLINE -> {
-                if (allOnlineSongs.isNotEmpty()) {
-                    filterSongs(currentSearchQuery)
-                } else {
+                _uiState.value = onlineUiState
+                if (allOnlineSongs.isEmpty()) {
                     loadOnlineSongs()
+                } else if (currentSearchQuery.isNotEmpty()) {
+                    filterSongs(currentSearchQuery)
                 }
             }
             HomeTab.DEVICE -> {
-                // Device songs feature is scoped for a future task
-                _uiState.value = HomeUiState.Empty(
-                    title = "No songs on this device",
-                    message = "Music saved on your device\nwill appear here."
-                )
+                _uiState.value = deviceUiState
+                if (allDeviceSongs.isNotEmpty() && currentSearchQuery.isNotEmpty()) {
+                    filterSongs(currentSearchQuery)
+                }
             }
         }
     }
 
     fun loadOnlineSongs(term: String = "pop") {
         viewModelScope.launch {
-            _uiState.value = HomeUiState.Loading
+            val loading = HomeUiState.Loading
+            onlineUiState = loading
+            if (_selectedTab.value == HomeTab.ONLINE) {
+                _uiState.value = loading
+            }
 
             getOnlineSongsUseCase(term = term)
                 .onSuccess { songs ->
                     allOnlineSongs = songs
-                    if (songs.isEmpty()) {
-                        _uiState.value = HomeUiState.Empty(
+                    val newState = if (songs.isEmpty()) {
+                        HomeUiState.Empty(
                             title = "No songs found",
                             message = "No songs found for \"$term\"."
                         )
-                    } else if (currentSearchQuery.isNotEmpty()) {
-                        filterSongs(currentSearchQuery)
+                    } else if (currentSearchQuery.isNotEmpty() && _selectedTab.value == HomeTab.ONLINE) {
+                        filterList(songs, currentSearchQuery)
                     } else {
-                        _uiState.value = HomeUiState.Success(songs)
+                        HomeUiState.Success(songs)
+                    }
+                    onlineUiState = newState
+                    if (_selectedTab.value == HomeTab.ONLINE) {
+                        _uiState.value = newState
                     }
                 }
                 .onFailure { error ->
@@ -88,42 +111,133 @@ class HomeViewModel(
                         error.localizedMessage ?: "Failed to load online songs."
                     }
 
-                    _uiState.value = HomeUiState.Error(
+                    val newState = HomeUiState.Error(
                         title = title,
                         message = message
                     )
+                    onlineUiState = newState
+                    if (_selectedTab.value == HomeTab.ONLINE) {
+                        _uiState.value = newState
+                    }
                 }
+        }
+    }
+
+    fun loadDeviceSongs() {
+        viewModelScope.launch {
+            val loading = HomeUiState.Loading
+            deviceUiState = loading
+            if (_selectedTab.value == HomeTab.DEVICE) {
+                _uiState.value = loading
+            }
+
+            getDeviceSongsUseCase()
+                .onSuccess { songs ->
+                    allDeviceSongs = songs
+                    hasDeviceSongsLoaded = true
+                    val newState = if (songs.isEmpty()) {
+                        HomeUiState.Empty(
+                            title = "No songs on this device",
+                            message = "Music saved on your device\nwill appear here."
+                        )
+                    } else if (currentSearchQuery.isNotEmpty() && _selectedTab.value == HomeTab.DEVICE) {
+                        filterList(songs, currentSearchQuery)
+                    } else {
+                        HomeUiState.Success(songs)
+                    }
+                    deviceUiState = newState
+                    if (_selectedTab.value == HomeTab.DEVICE) {
+                        _uiState.value = newState
+                    }
+                }
+                .onFailure { error ->
+                    val isSecurity = error is SecurityException
+                    val newState = if (isSecurity) {
+                        HomeUiState.PermissionRequired(
+                            title = "Permission Required",
+                            message = "Audio access permission is needed to display and play songs saved on your device."
+                        )
+                    } else {
+                        HomeUiState.Error(
+                            title = "Unable to Load Songs",
+                            message = error.localizedMessage ?: "Failed to read device audio files."
+                        )
+                    }
+                    deviceUiState = newState
+                    if (_selectedTab.value == HomeTab.DEVICE) {
+                        _uiState.value = newState
+                    }
+                }
+        }
+    }
+
+    fun onPermissionDenied(isPermanentlyDenied: Boolean) {
+        val message = if (isPermanentlyDenied) {
+            "Audio access permission was denied. Please allow audio access in App Settings to play your local music."
+        } else {
+            "Audio access permission is needed to display and play songs saved on your device."
+        }
+        val newState = HomeUiState.PermissionRequired(
+            title = "Permission Required",
+            message = message,
+            isPermanentlyDenied = isPermanentlyDenied
+        )
+        deviceUiState = newState
+        if (_selectedTab.value == HomeTab.DEVICE) {
+            _uiState.value = newState
         }
     }
 
     fun filterSongs(query: String) {
         currentSearchQuery = query.trim()
-        if (_selectedTab.value != HomeTab.ONLINE) return
-        if (allOnlineSongs.isEmpty()) return
-
-        val filtered = if (currentSearchQuery.isEmpty()) {
-            allOnlineSongs
-        } else {
-            allOnlineSongs.filter { song ->
-                song.trackName.contains(currentSearchQuery, ignoreCase = true) ||
-                        song.artistName.contains(currentSearchQuery, ignoreCase = true)
-            }
+        val sourceList = when (_selectedTab.value) {
+            HomeTab.ONLINE -> allOnlineSongs
+            HomeTab.DEVICE -> allDeviceSongs
         }
 
-        if (filtered.isEmpty()) {
-            _uiState.value = HomeUiState.Empty(
+        if (sourceList.isEmpty()) return
+
+        val newState = filterList(sourceList, currentSearchQuery)
+        if (_selectedTab.value == HomeTab.ONLINE) {
+            onlineUiState = newState
+        } else {
+            deviceUiState = newState
+        }
+        _uiState.value = newState
+    }
+
+    private fun filterList(source: List<Song>, query: String): HomeUiState {
+        if (query.isEmpty()) return HomeUiState.Success(source)
+
+        val filtered = source.filter { song ->
+            song.trackName.contains(query, ignoreCase = true) ||
+                    song.artistName.contains(query, ignoreCase = true)
+        }
+
+        return if (filtered.isEmpty()) {
+            HomeUiState.Empty(
                 title = "No songs found",
-                message = "No songs match \"$currentSearchQuery\"."
+                message = "No songs match \"$query\"."
             )
         } else {
-            _uiState.value = HomeUiState.Success(filtered)
+            HomeUiState.Success(filtered)
         }
     }
 
     fun clearSearch() {
         currentSearchQuery = ""
-        if (allOnlineSongs.isNotEmpty()) {
-            _uiState.value = HomeUiState.Success(allOnlineSongs)
+        val sourceList = when (_selectedTab.value) {
+            HomeTab.ONLINE -> allOnlineSongs
+            HomeTab.DEVICE -> allDeviceSongs
+        }
+        if (sourceList.isNotEmpty()) {
+            val newState = HomeUiState.Success(sourceList)
+            if (_selectedTab.value == HomeTab.ONLINE) {
+                onlineUiState = newState
+            } else {
+                deviceUiState = newState
+            }
+            _uiState.value = newState
         }
     }
 

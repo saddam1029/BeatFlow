@@ -10,4 +10,9 @@ sealed interface HomeUiState {
     data class Success(val songs: List<Song>) : HomeUiState
     data class Empty(val title: String, val message: String) : HomeUiState
     data class Error(val title: String, val message: String) : HomeUiState
+    data class PermissionRequired(
+        val title: String,
+        val message: String,
+        val isPermanentlyDenied: Boolean = false
+    ) : HomeUiState
 }

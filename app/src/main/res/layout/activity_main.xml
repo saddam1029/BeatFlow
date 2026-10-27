@@ -34,8 +34,8 @@
             <!-- App Logo Glyph -->
             <ImageView
                 android:id="@+id/ivLogo"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="@dimen/_38sdp"
+                android:layout_height="@dimen/_38sdp"
                 android:contentDescription="@string/splash_logo_description"
                 android:src="@drawable/ic_beatflow_logo"
                 app:layout_constraintBottom_toBottomOf="parent"
@@ -47,7 +47,6 @@
                 android:id="@+id/tvAppName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
                 android:fontFamily="sans-serif-medium"
                 android:text="@string/home_title"
                 android:textColor="@color/home_text_primary"
@@ -87,8 +86,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:visibility="visible">
+            app:layout_constraintTop_toTopOf="parent">
 
             <!-- Search Start Icon -->
             <ImageView
@@ -451,7 +449,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="3dp"
                 android:max="100"
-                android:progress="35"
+                android:progress="0"
                 android:progressDrawable="@drawable/bg_mini_player_progress"
                 app:layout_constraintBottom_toBottomOf="parent" />
 

@@ -13,9 +13,17 @@ import androidx.media3.session.SessionToken
 import com.example.beatflow.domain.model.Song
 import com.example.beatflow.domain.playback.MusicPlayer
 import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /**
  * Media3 implementation of MusicPlayer that controls playback by binding to
@@ -25,6 +33,9 @@ class Media3MusicPlayer(
     private val context: Context
 ) : MusicPlayer {
 
+    private val playerScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var progressUpdateJob: Job? = null
+
     private val _currentSong = MutableStateFlow<Song?>(null)
     override val currentSong: StateFlow<Song?> = _currentSong.asStateFlow()
 
@@ -33,6 +44,9 @@ class Media3MusicPlayer(
 
     private val _isBuffering = MutableStateFlow(false)
     override val isBuffering: StateFlow<Boolean> = _isBuffering.asStateFlow()
+
+    private val _playbackProgress = MutableStateFlow(0)
+    override val playbackProgress: StateFlow<Int> = _playbackProgress.asStateFlow()
 
     private val _playbackError = MutableStateFlow<String?>(null)
     override val playbackError: StateFlow<String?> = _playbackError.asStateFlow()
@@ -72,18 +86,26 @@ class Media3MusicPlayer(
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _isPlaying.value = isPlaying
+                if (isPlaying) {
+                    startProgressTracker()
+                } else {
+                    stopProgressTracker()
+                }
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 _isBuffering.value = (playbackState == Player.STATE_BUFFERING)
                 if (playbackState == Player.STATE_ENDED) {
                     _isPlaying.value = false
+                    _playbackProgress.value = 100
+                    stopProgressTracker()
                 }
             }
 
             override fun onPlayerError(error: PlaybackException) {
                 _isPlaying.value = false
                 _isBuffering.value = false
+                stopProgressTracker()
                 _playbackError.value = "Playback error: ${error.localizedMessage ?: "Unable to stream audio preview"}"
             }
 
@@ -91,6 +113,7 @@ class Media3MusicPlayer(
                 val trackId = mediaItem?.mediaId?.toLongOrNull()
                 if (trackId != null && songCache.containsKey(trackId)) {
                     _currentSong.value = songCache[trackId]
+                    _playbackProgress.value = 0
                 }
             }
         })
@@ -103,14 +126,49 @@ class Media3MusicPlayer(
         if (currentTrackId != null && songCache.containsKey(currentTrackId)) {
             _currentSong.value = songCache[currentTrackId]
         }
+        if (player.isPlaying) {
+            startProgressTracker()
+        }
+    }
+
+    private fun startProgressTracker() {
+        progressUpdateJob?.cancel()
+        progressUpdateJob = playerScope.launch {
+            while (isActive) {
+                val controller = mediaController
+                if (controller != null && controller.isPlaying) {
+                    val duration = controller.duration
+                    val position = controller.currentPosition
+                    if (duration > 0) {
+                        val progressPercent = ((position.toDouble() / duration.toDouble()) * 100).toInt()
+                        _playbackProgress.value = progressPercent.coerceIn(0, 100)
+                    } else {
+                        _playbackProgress.value = 0
+                    }
+                }
+                delay(200)
+            }
+        }
+    }
+
+    private fun stopProgressTracker() {
+        progressUpdateJob?.cancel()
+        progressUpdateJob = null
     }
 
     override fun playSong(song: Song) {
         _playbackError.value = null
+        _playbackProgress.value = 0
 
         val previewUrl = song.previewUrl?.trim()
-        if (previewUrl.isNullOrEmpty() || (!previewUrl.startsWith("http://", ignoreCase = true) && !previewUrl.startsWith("https://", ignoreCase = true))) {
-            _playbackError.value = "Audio preview is not available for \"${song.trackName}\"."
+        val isValidUri = !previewUrl.isNullOrEmpty() && (
+            previewUrl.startsWith("http://", ignoreCase = true) ||
+            previewUrl.startsWith("https://", ignoreCase = true) ||
+            previewUrl.startsWith("content://", ignoreCase = true) ||
+            previewUrl.startsWith("file://", ignoreCase = true)
+        )
+        if (!isValidUri) {
+            _playbackError.value = "Audio is not available for \"${song.trackName}\"."
             return
         }
 
@@ -142,10 +200,12 @@ class Media3MusicPlayer(
 
     override fun pause() {
         mediaController?.pause()
+        stopProgressTracker()
     }
 
     override fun resume() {
         mediaController?.play()
+        startProgressTracker()
     }
 
     override fun togglePlayPause(song: Song?) {
@@ -165,12 +225,16 @@ class Media3MusicPlayer(
     }
 
     override fun stop() {
+        stopProgressTracker()
         mediaController?.stop()
         _currentSong.value = null
         _isPlaying.value = false
+        _playbackProgress.value = 0
     }
 
     override fun release() {
+        stopProgressTracker()
+        playerScope.cancel()
         controllerFuture?.let { MediaController.releaseFuture(it) }
         controllerFuture = null
         mediaController = null

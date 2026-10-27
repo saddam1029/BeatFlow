@@ -53,6 +53,12 @@ object NetworkModule {
         )
     }
 
+    val deviceSongRepository: com.example.beatflow.domain.repository.DeviceSongRepository by lazy {
+        val context = applicationContext
+            ?: throw IllegalStateException("NetworkModule must be initialized with Context via NetworkModule.init(context)")
+        com.example.beatflow.data.repository.DeviceSongRepositoryImpl(context)
+    }
+
     val musicPlayer: com.example.beatflow.domain.playback.MusicPlayer by lazy {
         val context = applicationContext
             ?: throw IllegalStateException("NetworkModule must be initialized with Context via NetworkModule.init(context)")
@@ -61,6 +67,10 @@ object NetworkModule {
 
     fun provideGetOnlineSongsUseCase(): GetOnlineSongsUseCase {
         return GetOnlineSongsUseCase(songRepository)
+    }
+
+    fun provideGetDeviceSongsUseCase(): com.example.beatflow.domain.usecase.GetDeviceSongsUseCase {
+        return com.example.beatflow.domain.usecase.GetDeviceSongsUseCase(deviceSongRepository)
     }
 
     fun provideMusicPlayer(): com.example.beatflow.domain.playback.MusicPlayer {

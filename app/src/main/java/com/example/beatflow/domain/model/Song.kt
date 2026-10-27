@@ -10,5 +10,6 @@ data class Song(
     val artistName: String,
     val artworkUrl: String?,
     val previewUrl: String?,
-    val trackViewUrl: String?
+    val trackViewUrl: String?,
+    val durationMs: Long = 0L
 )

@@ -9,11 +9,7 @@
     android:background="@drawable/splash_scren_bg"
     tools:context=".SplashActivity">
 
-    <!--
-        Reserved ImageView for your custom app logo.
-        To display your logo, add: android:src="@drawable/your_logo_name"
-        You can also adjust or remove android:background once your logo is added.
-    -->
+
     <ImageView
         android:id="@+id/ivAppLogo"
         android:layout_width="@dimen/_100sdp"
@@ -28,30 +24,28 @@
         app:layout_constraintVertical_bias="0.46"
         app:layout_constraintVertical_chainStyle="packed" />
 
-    <!-- App Title -->
     <TextView
         android:id="@+id/tvAppName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/_22sdp"
-        android:fontFamily="sans-serif-medium"
+        android:fontFamily="@font/inter_bold"
         android:letterSpacing="0.04"
         android:text="@string/splash_app_name"
         android:textColor="@color/splash_text_primary"
-        android:textSize="@dimen/_22sdp"
+        android:textSize="@dimen/_25sdp"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/tvAppSubtitle"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/ivAppLogo" />
 
-    <!-- Subtitle / Tagline with Subtle Cyan/Electric Blue Accent -->
     <TextView
         android:id="@+id/tvAppSubtitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:fontFamily="sans-serif"
+        android:fontFamily="@font/inter_regular"
         android:letterSpacing="0.06"
         android:text="@string/splash_subtitle"
         android:textColor="@color/splash_accent_cyan"

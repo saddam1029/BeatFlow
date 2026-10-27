@@ -1,6 +1,12 @@
 package com.example.beatflow
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
@@ -14,9 +20,12 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
@@ -26,7 +35,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.example.beatflow.data.mapper.getHighResArtworkUrl
+import com.example.beatflow.data.mapper.resolveArtworkUri
 import com.example.beatflow.domain.model.HomeTab
 import com.example.beatflow.domain.model.Song
 import com.example.beatflow.ui.home.HomeUiState
@@ -70,6 +79,20 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvMiniPlayerArtist: TextView
     private lateinit var ivMiniPlayerBars: ImageView
     private lateinit var btnMiniPlayerPlay: ImageButton
+    private lateinit var pbMiniPlayer: ProgressBar
+
+    // Runtime permission launcher for local audio access
+    private val audioPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            viewModel.loadDeviceSongs()
+        } else {
+            val permission = getRequiredAudioPermission()
+            val isPermanentlyDenied = !ActivityCompat.shouldShowRequestPermissionRationale(this, permission)
+            viewModel.onPermissionDenied(isPermanentlyDenied)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,6 +107,16 @@ class MainActivity : AppCompatActivity() {
         setupMiniPlayer()
         setupEmptyStateActions()
         observeViewModel()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // If the user is on Device Songs and permission was granted via Settings while away, auto-load
+        if (viewModel.selectedTab.value == HomeTab.DEVICE && hasAudioPermission()) {
+            if (!viewModel.hasDeviceSongsLoaded || viewModel.uiState.value is HomeUiState.PermissionRequired) {
+                viewModel.loadDeviceSongs()
+            }
+        }
     }
 
     private fun initViews() {
@@ -112,6 +145,7 @@ class MainActivity : AppCompatActivity() {
         tvMiniPlayerArtist = findViewById(R.id.tvMiniPlayerArtist)
         ivMiniPlayerBars = findViewById(R.id.ivMiniPlayerBars)
         btnMiniPlayerPlay = findViewById(R.id.btnMiniPlayerPlay)
+        pbMiniPlayer = findViewById(R.id.pbMiniPlayer)
     }
 
     private fun applyWindowInsets() {
@@ -146,7 +180,7 @@ class MainActivity : AppCompatActivity() {
         etSearch.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 val query = etSearch.text.toString().trim()
-                if (query.isNotEmpty()) {
+                if (query.isNotEmpty() && viewModel.selectedTab.value == HomeTab.ONLINE) {
                     viewModel.loadOnlineSongs(query)
                 }
                 hideKeyboard()
@@ -178,6 +212,36 @@ class MainActivity : AppCompatActivity() {
         imm?.hideSoftInputFromWindow(etSearch.windowToken, 0)
     }
 
+    private fun getRequiredAudioPermission(): String {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+    }
+
+    private fun hasAudioPermission(): Boolean {
+        val permission = getRequiredAudioPermission()
+        return ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun checkAndRequestAudioPermission() {
+        if (hasAudioPermission()) {
+            if (!viewModel.hasDeviceSongsLoaded) {
+                viewModel.loadDeviceSongs()
+            }
+        } else {
+            audioPermissionLauncher.launch(getRequiredAudioPermission())
+        }
+    }
+
+    private fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", packageName, null)
+        }
+        startActivity(intent)
+    }
+
     private fun setupTabs() {
         tabLayout.removeAllTabs()
         tabLayout.addTab(tabLayout.newTab().setText(R.string.tab_online_songs))
@@ -187,7 +251,10 @@ class MainActivity : AppCompatActivity() {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 when (tab?.position) {
                     0 -> viewModel.selectTab(HomeTab.ONLINE)
-                    1 -> viewModel.selectTab(HomeTab.DEVICE)
+                    1 -> {
+                        viewModel.selectTab(HomeTab.DEVICE)
+                        checkAndRequestAudioPermission()
+                    }
                 }
             }
 
@@ -211,8 +278,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupMiniPlayer() {
-        // Intercept/consume click events on the mini player container and clPlay layout
-        // so touch events never leak through to the RecyclerView items behind clPlay.
         layoutMiniPlayer.setOnClickListener {
             viewModel.togglePlayPause()
         }
@@ -226,14 +291,17 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupEmptyStateActions() {
         btnTryAgain.setOnClickListener {
-            viewModel.loadOnlineSongs()
+            when (viewModel.selectedTab.value) {
+                HomeTab.ONLINE -> viewModel.loadOnlineSongs()
+                HomeTab.DEVICE -> checkAndRequestAudioPermission()
+            }
         }
     }
 
     private fun observeViewModel() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                // Collect UI state (Loading / Success / Empty / Error)
+                // Collect UI state (Loading / Success / Empty / Error / PermissionRequired)
                 launch {
                     viewModel.uiState.collect { state ->
                         handleUiState(state)
@@ -250,7 +318,7 @@ class MainActivity : AppCompatActivity() {
                             tvMiniPlayerTitle.text = song.trackName
                             tvMiniPlayerArtist.text = song.artistName
 
-                            val artworkUrl = getHighResArtworkUrl(song.artworkUrl)
+                            val artworkUrl = resolveArtworkUri(song.artworkUrl)
                             if (!artworkUrl.isNullOrBlank()) {
                                 Glide.with(this@MainActivity)
                                     .load(artworkUrl)
@@ -283,7 +351,14 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                // Collect playback errors (e.g. invalid preview URL or streaming issues)
+                // Collect playback progress (0 to 100%)
+                launch {
+                    viewModel.playbackProgress.collect { progress ->
+                        pbMiniPlayer.progress = progress
+                    }
+                }
+
+                // Collect playback errors (e.g. invalid preview URL, missing files, or streaming issues)
                 launch {
                     viewModel.playbackError.collect { errorMsg ->
                         if (!errorMsg.isNullOrBlank()) {
@@ -329,7 +404,35 @@ class MainActivity : AppCompatActivity() {
                 ivEmptyIcon.setImageResource(R.drawable.ic_wifi_off)
                 tvEmptyTitle.text = state.title
                 tvEmptySubtitle.text = state.message
+                btnTryAgain.text = getString(R.string.btn_try_again)
                 btnTryAgain.visibility = View.VISIBLE
+                btnTryAgain.setOnClickListener {
+                    when (viewModel.selectedTab.value) {
+                        HomeTab.ONLINE -> viewModel.loadOnlineSongs()
+                        HomeTab.DEVICE -> viewModel.loadDeviceSongs()
+                    }
+                }
+            }
+            is HomeUiState.PermissionRequired -> {
+                progressBar.visibility = View.GONE
+                rvSongs.visibility = View.GONE
+                layoutSectionHeader.visibility = View.GONE
+                layoutEmptyState.visibility = View.VISIBLE
+                ivEmptyIcon.setImageResource(R.drawable.ic_music_note)
+                tvEmptyTitle.text = state.title
+                tvEmptySubtitle.text = state.message
+                btnTryAgain.visibility = View.VISIBLE
+                if (state.isPermanentlyDenied) {
+                    btnTryAgain.text = getString(R.string.btn_open_settings)
+                    btnTryAgain.setOnClickListener {
+                        openAppSettings()
+                    }
+                } else {
+                    btnTryAgain.text = getString(R.string.btn_grant_permission)
+                    btnTryAgain.setOnClickListener {
+                        checkAndRequestAudioPermission()
+                    }
+                }
             }
         }
     }

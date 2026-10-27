@@ -12,7 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.beatflow.R
-import com.example.beatflow.data.mapper.getHighResArtworkUrl
+import com.example.beatflow.data.mapper.resolveArtworkUri
 import com.example.beatflow.domain.model.Song
 
 class SongAdapter(
@@ -62,8 +62,8 @@ class SongAdapter(
             tvTrackName.text = song.trackName
             tvArtistName.text = song.artistName
 
-            // Resolve high-resolution artwork URL safely
-            val artworkUrl = getHighResArtworkUrl(song.artworkUrl)
+            // Resolve artwork URL (high-res for iTunes, content URI for local) safely
+            val artworkUrl = resolveArtworkUri(song.artworkUrl)
 
             if (!artworkUrl.isNullOrBlank()) {
                 Glide.with(itemView.context)

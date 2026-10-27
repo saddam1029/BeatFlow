@@ -26,6 +26,7 @@
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp"
+            android:backgroundTint="@color/black"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
@@ -34,7 +35,8 @@
                 android:id="@+id/ivAlbumArt"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:contentDescription="@string/cd_album_art"
+                android:src="@drawable/ic_beatflow_logo"
+                android:contentDescription="@string/app_name"
                 android:scaleType="centerCrop" />
         </com.google.android.material.card.MaterialCardView>
 
@@ -60,7 +62,7 @@
         <!-- Artist Name -->
         <TextView
             android:id="@+id/tvArtistName"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="14dp"
             android:layout_marginTop="3dp"
@@ -71,10 +73,24 @@
             android:textColor="@color/home_text_secondary"
             android:textSize="13sp"
             app:layout_constraintBottom_toBottomOf="@+id/cardAlbumArt"
-            app:layout_constraintEnd_toStartOf="@+id/cardPlaySong"
             app:layout_constraintStart_toEndOf="@+id/cardAlbumArt"
             app:layout_constraintTop_toBottomOf="@+id/tvTrackName"
             tools:text="ODESZA" />
+
+        <TextView
+            android:id="@+id/tvSongTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:layout_marginTop="@dimen/_2sdp"
+            android:fontFamily="sans-serif"
+            android:maxLines="1"
+            android:layout_marginStart="@dimen/_10sdp"
+            android:textColor="@color/home_text_secondary"
+            android:textSize="13sp"
+            app:layout_constraintStart_toEndOf="@+id/tvArtistName"
+            app:layout_constraintTop_toBottomOf="@+id/tvTrackName"
+            tools:text="4:15" />
 
         <!-- Circular Play / Pause Button -->
         <com.google.android.material.card.MaterialCardView

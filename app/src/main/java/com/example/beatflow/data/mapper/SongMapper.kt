@@ -31,6 +31,18 @@ fun getHighResArtworkUrl(url: String?): String? {
     }
 }
 
+/**
+ * Resolves artwork URI for either online songs (HTTP/HTTPS) or local songs (content:// or file://).
+ */
+fun resolveArtworkUri(url: String?): String? {
+    if (url.isNullOrBlank()) return null
+    val trimmed = url.trim()
+    if (trimmed.startsWith("content://", ignoreCase = true) || trimmed.startsWith("file://", ignoreCase = true)) {
+        return trimmed
+    }
+    return getHighResArtworkUrl(trimmed)
+}
+
 // --- DTO to Domain ---
 fun SongDto.toDomain(): Song? {
     val id = trackId ?: return null
