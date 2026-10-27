@@ -18,4 +18,16 @@
     <color name="splash_background">#070B19</color>
     <color name="splash_title">#FFFFFF</color>
     <color name="splash_accent">#00E5FF</color>
+
+    <!-- Home Screen Theme: Dark Navy/Black with Electric Cyan Accents -->
+    <color name="home_background">#070B19</color>
+    <color name="home_surface">#0F172A</color>
+    <color name="home_surface_elevated">#162238</color>
+    <color name="home_accent_cyan">#00E5FF</color>
+    <color name="home_text_primary">#FFFFFF</color>
+    <color name="home_text_secondary">#94A3B8</color>
+    <color name="home_text_muted">#64748B</color>
+    <color name="home_tab_unselected">#94A3B8</color>
+    <color name="home_divider">#1A253E</color>
+    <color name="home_mini_player_bg">#0F182C</color>
 </resources>

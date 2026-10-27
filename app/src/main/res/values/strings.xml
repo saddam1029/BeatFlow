@@ -3,4 +3,19 @@
     <string name="splash_app_name">Music Player</string>
     <string name="splash_subtitle">Your music, your mood.</string>
     <string name="splash_logo_description">App Logo</string>
+
+    <!-- Home Screen Strings -->
+    <string name="home_title">Music Player</string>
+    <string name="tab_online_songs">Online Songs</string>
+    <string name="tab_device_songs">Device Songs</string>
+    <string name="empty_songs_title">No Songs Available</string>
+    <string name="empty_device_songs_desc">No songs found on your device yet.</string>
+    <string name="cd_album_art">Album artwork</string>
+    <string name="cd_play_song">Play song</string>
+    <string name="cd_song_overflow">Song options</string>
+    <string name="cd_mini_player_play">Play or pause</string>
+    <string name="menu_share">Share</string>
+    <string name="menu_delete">Delete</string>
+    <string name="action_share_toast">Share: %1$s</string>
+    <string name="action_delete_toast">Delete: %1$s</string>
 </resources>

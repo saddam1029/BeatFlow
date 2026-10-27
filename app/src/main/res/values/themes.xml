@@ -5,5 +5,15 @@
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
 
-    <style name="Theme.BeatFlow" parent="Base.Theme.BeatFlow" />
+
+    <style name="Theme.BeatFlow"
+        parent="Theme.MaterialComponents.DayNight.NoActionBar">
+
+        <item name="android:statusBarColor">@color/home_background</item>
+        <item name="android:navigationBarColor">@color/home_background</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="colorPrimary">@color/home_accent_cyan</item>
+        <item name="colorSecondary">@color/home_accent_cyan</item>
+    </style>
 </resources>

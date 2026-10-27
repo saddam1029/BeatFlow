@@ -1,19 +1,205 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/home_background"
     tools:context=".MainActivity">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <!-- Top App Bar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbarHome"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/home_background"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:title="@string/home_title"
+        app:titleCentered="false"
+        app:titleTextAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+        app:titleTextColor="@color/home_text_primary" />
+
+    <!-- Two Tabs: Online Songs & Device Songs -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayout"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
+        android:background="@color/home_background"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/toolbarHome"
+        app:tabGravity="fill"
+        app:tabIndicatorAnimationMode="elastic"
+        app:tabIndicatorColor="@color/home_accent_cyan"
+        app:tabIndicatorFullWidth="false"
+        app:tabIndicatorHeight="3dp"
+        app:tabMode="fixed"
+        app:tabRippleColor="#1A00E5FF"
+        app:tabSelectedTextColor="@color/home_accent_cyan"
+        app:tabTextAppearance="@android:style/TextAppearance.Widget.TabWidget"
+        app:tabTextColor="@color/home_tab_unselected" />
+
+    <View
+        android:id="@+id/viewTabDivider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/home_divider"
+        app:layout_constraintTop_toBottomOf="@+id/tabLayout" />
+
+    <!-- Songs List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvSongs"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingTop="8dp"
+        android:paddingBottom="12dp"
+        app:layout_constraintBottom_toTopOf="@+id/layoutMiniPlayer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/viewTabDivider"
+        tools:listitem="@layout/item_song" />
+
+    <!-- Clean Empty State for when no songs are available -->
+    <LinearLayout
+        android:id="@+id/layoutEmptyState"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/layoutMiniPlayer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/viewTabDivider"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/tvEmptyTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/empty_songs_title"
+            android:textColor="@color/home_text_primary"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/tvEmptySubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="sans-serif"
+            android:gravity="center"
+            android:text="@string/empty_device_songs_desc"
+            android:textColor="@color/home_text_muted"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!--
+        Bottom Mini-Player Area.
+        Displays currently playing track, artwork, and playback controls.
+        Initially hidden (visibility="gone") until a song is selected/played.
+    -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutMiniPlayer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/home_mini_player_bg"
+        android:elevation="8dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        tools:visibility="visible">
+
+        <!-- Mini-Player Top Cyan Accent / Progress Indicator -->
+        <View
+            android:id="@+id/viewMiniPlayerIndicator"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@color/home_accent_cyan"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Artwork container (empty ImageView with ID) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardMiniPlayerArt"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginTop="8dp"
+            app:cardBackgroundColor="@color/home_surface_elevated"
+            app:cardCornerRadius="6dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/viewMiniPlayerIndicator">
+
+            <ImageView
+                android:id="@+id/ivMiniPlayerArt"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/cd_album_art"
+                android:scaleType="centerCrop" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Current Track Title -->
+        <TextView
+            android:id="@+id/tvMiniPlayerTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:textColor="@color/home_text_primary"
+            android:textSize="14sp"
+            app:layout_constraintBottom_toTopOf="@+id/tvMiniPlayerArtist"
+            app:layout_constraintEnd_toStartOf="@+id/btnMiniPlayerPlay"
+            app:layout_constraintStart_toEndOf="@+id/cardMiniPlayerArt"
+            app:layout_constraintTop_toTopOf="@+id/cardMiniPlayerArt"
+            app:layout_constraintVertical_chainStyle="packed"
+            tools:text="Now Playing Song" />
+
+        <!-- Current Track Artist -->
+        <TextView
+            android:id="@+id/tvMiniPlayerArtist"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif"
+            android:maxLines="1"
+            android:textColor="@color/home_text_secondary"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@+id/cardMiniPlayerArt"
+            app:layout_constraintEnd_toStartOf="@+id/btnMiniPlayerPlay"
+            app:layout_constraintStart_toEndOf="@+id/cardMiniPlayerArt"
+            app:layout_constraintTop_toBottomOf="@+id/tvMiniPlayerTitle"
+            tools:text="Artist Name" />
+
+        <!-- Mini-Player Play / Pause Control Button -->
+        <ImageButton
+            android:id="@+id/btnMiniPlayerPlay"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cd_mini_player_play"
+            android:padding="8dp"
+            android:src="@android:drawable/ic_media_play"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/home_accent_cyan" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
