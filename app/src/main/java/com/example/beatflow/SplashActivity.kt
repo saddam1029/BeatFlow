@@ -9,19 +9,15 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.example.beatflow.data.ads.AppOpenAdManager
+import com.example.beatflow.data.ads.InterstitialAdManager
 
 @SuppressLint("CustomSplashScreen")
 class SplashActivity : AppCompatActivity() {
 
-    private val splashDelayMillis = 2000L
     private val handler = Handler(Looper.getMainLooper())
-    private val navigateRunnable = Runnable {
-        if (!isFinishing && !isDestroyed) {
-            val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent)
-            finish()
-        }
-    }
+    private var hasNavigated = false
+    private var timeoutRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,13 +30,50 @@ class SplashActivity : AppCompatActivity() {
             insets
         }
 
-        // Schedule transition to MainActivity after 2 seconds
-        handler.postDelayed(navigateRunnable, splashDelayMillis)
+        InterstitialAdManager.preloadAd(this)
+        loadAndShowAppOpenAd()
+    }
+
+    private fun loadAndShowAppOpenAd() {
+        var adProcessed = false
+
+        timeoutRunnable = Runnable {
+            if (!adProcessed) {
+                adProcessed = true
+                navigateToHome()
+            }
+        }
+        // Strict 6-second timeout when loading begins
+        handler.postDelayed(timeoutRunnable!!, 6000L)
+
+        AppOpenAdManager.loadAndShowAd(
+            context = this,
+            onAdShowed = {
+                if (!adProcessed) {
+                    timeoutRunnable?.let { handler.removeCallbacks(it) }
+                }
+            },
+            onAdDismissedOrFailed = {
+                if (!adProcessed) {
+                    adProcessed = true
+                    timeoutRunnable?.let { handler.removeCallbacks(it) }
+                    navigateToHome()
+                }
+            }
+        )
+    }
+
+    private fun navigateToHome() {
+        if (!hasNavigated && !isFinishing && !isDestroyed) {
+            hasNavigated = true
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+            finish()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Prevent memory leaks and callbacks if the Activity is destroyed early
-        handler.removeCallbacks(navigateRunnable)
+        handler.removeCallbacksAndMessages(null)
     }
 }

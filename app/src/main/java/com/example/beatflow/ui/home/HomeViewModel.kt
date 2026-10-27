@@ -396,6 +396,14 @@ class HomeViewModel(
         }
     }
 
+    fun pause() {
+        musicPlayer.pause()
+    }
+
+    fun resume() {
+        musicPlayer.resume()
+    }
+
     fun playSong(song: Song) {
         val currentList = when (_selectedTab.value) {
             HomeTab.ONLINE -> allOnlineSongs

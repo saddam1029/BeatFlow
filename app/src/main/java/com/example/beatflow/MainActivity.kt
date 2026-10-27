@@ -37,6 +37,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.example.beatflow.data.ads.InterstitialAdManager
 import com.example.beatflow.data.mapper.resolveArtworkUri
 import com.example.beatflow.domain.model.HomeTab
 import com.example.beatflow.domain.model.Song
@@ -315,8 +316,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupRecyclerView() {
         songAdapter = SongAdapter(
-            onSongClick = { song -> viewModel.playSong(song) },
-            onPlayClick = { song -> viewModel.playSong(song) },
+            onSongClick = { song -> playSongWithAd(song) },
+            onPlayClick = { song -> playSongWithAd(song) },
             onOverflowClick = { _, song -> showSongOptionsBottomSheet(song) }
         )
 
@@ -325,6 +326,30 @@ class MainActivity : AppCompatActivity() {
             adapter = songAdapter
             itemAnimator = null
         }
+    }
+
+    private fun playSongWithAd(song: Song) {
+        if (InterstitialAdManager.isShowingAd) {
+            return
+        }
+
+        val wasPlaying = viewModel.isPlaying.value
+        val currentSong = viewModel.currentPlayingSong.value
+        val isDifferentSong = (song.trackId != currentSong?.trackId)
+
+        if (wasPlaying) {
+            viewModel.pause()
+        }
+
+        InterstitialAdManager.showAdIfReady(
+            activity = this,
+            onAdShowed = {
+                // Ad showing
+            },
+            onAdDismissedOrFailed = {
+                viewModel.playSong(song)
+            }
+        )
     }
 
     private fun setupMiniPlayer() {
