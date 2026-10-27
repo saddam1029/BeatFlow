@@ -167,6 +167,37 @@ class SongRepositoryTest {
         assertEquals("", formatDuration(null))
         assertEquals("", formatDuration(0L))
     }
+
+    @Test
+    fun test_deleteOnlineSong_success() = runBlocking {
+        // Arrange
+        val entity = SongEntity(
+            trackId = 200L,
+            trackName = "To Delete",
+            artistName = "Artist",
+            artworkUrl = "http://art.com/200.jpg",
+            previewUrl = "http://preview.com/200.m4a",
+            trackViewUrl = "http://view.com/200"
+        )
+        fakeDao.insertSongs(listOf(entity))
+        assertEquals(1, fakeDao.getSongCount())
+
+        // Act
+        val result = repository.deleteOnlineSong(200L)
+
+        // Assert
+        assertTrue(result.isSuccess)
+        assertEquals(0, fakeDao.getSongCount())
+    }
+
+    @Test
+    fun test_deleteOnlineSong_failureWhenNotFound() = runBlocking {
+        // Act
+        val result = repository.deleteOnlineSong(999L)
+
+        // Assert
+        assertTrue(result.isFailure)
+    }
 }
 
 // --- Test Fakes ---

@@ -2,6 +2,7 @@ package com.example.beatflow
 
 import android.Manifest
 import android.content.Intent
+import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -19,11 +20,12 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.PopupMenu
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -41,7 +43,9 @@ import com.example.beatflow.domain.model.Song
 import com.example.beatflow.ui.home.HomeUiState
 import com.example.beatflow.ui.home.HomeViewModel
 import com.example.beatflow.ui.home.SongAdapter
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.launch
 
@@ -81,6 +85,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnMiniPlayerPlay: ImageButton
     private lateinit var pbMiniPlayer: ProgressBar
 
+    // Retained reference for Exit Confirmation Bottom Sheet
+    private var exitBottomSheetDialog: BottomSheetDialog? = null
+
+    // Pending song awaiting scoped storage delete confirmation
+    private var pendingDeleteSong: Song? = null
+
     // Runtime permission launcher for local audio access
     private val audioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -91,6 +101,25 @@ class MainActivity : AppCompatActivity() {
             val permission = getRequiredAudioPermission()
             val isPermanentlyDenied = !ActivityCompat.shouldShowRequestPermissionRationale(this, permission)
             viewModel.onPermissionDenied(isPermanentlyDenied)
+        }
+    }
+
+    // MediaStore scoped storage deletion confirmation launcher
+    private val deleteMediaLauncher = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        val song = pendingDeleteSong
+        pendingDeleteSong = null
+        if (result.resultCode == RESULT_OK && song != null) {
+            viewModel.onDeviceSongDeleteConfirmed(song)
+            Toast.makeText(
+                this,
+                getString(R.string.delete_song_success, song.trackName),
+                Toast.LENGTH_SHORT
+            ).show()
+        } else {
+            viewModel.onDeviceSongDeleteCancelled()
+            Toast.makeText(this, getString(R.string.delete_song_cancelled), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -106,6 +135,7 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
         setupMiniPlayer()
         setupEmptyStateActions()
+        setupBackNavigation()
         observeViewModel()
     }
 
@@ -267,7 +297,7 @@ class MainActivity : AppCompatActivity() {
         songAdapter = SongAdapter(
             onSongClick = { song -> viewModel.playSong(song) },
             onPlayClick = { song -> viewModel.playSong(song) },
-            onOverflowClick = { anchorView, song -> showSongOverflowMenu(anchorView, song) }
+            onOverflowClick = { _, song -> showSongOptionsBottomSheet(song) }
         )
 
         rvSongs.apply {
@@ -295,6 +325,172 @@ class MainActivity : AppCompatActivity() {
                 HomeTab.ONLINE -> viewModel.loadOnlineSongs()
                 HomeTab.DEVICE -> checkAndRequestAudioPermission()
             }
+        }
+    }
+
+    private fun setupBackNavigation() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (layoutSearch.visibility == View.VISIBLE) {
+                    hideSearchBar()
+                    return
+                }
+
+                if (exitBottomSheetDialog?.isShowing == true) {
+                    return
+                }
+                showExitConfirmationSheet()
+            }
+        })
+    }
+
+    private fun showExitConfirmationSheet() {
+        val dialog = BottomSheetDialog(this, R.style.Theme_BeatFlow_BottomSheetDialog)
+        val view = layoutInflater.inflate(R.layout.bottom_sheet_exit_confirmation, null)
+        dialog.setContentView(view)
+
+        val btnStay = view.findViewById<MaterialButton>(R.id.btnStayInApp)
+        val btnExit = view.findViewById<MaterialButton>(R.id.btnExitApp)
+
+        btnStay.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnExit.setOnClickListener {
+            dialog.dismiss()
+            finish()
+        }
+
+        dialog.setOnDismissListener {
+            exitBottomSheetDialog = null
+        }
+
+        exitBottomSheetDialog = dialog
+        dialog.show()
+    }
+
+    private fun showSongOptionsBottomSheet(song: Song) {
+        val dialog = BottomSheetDialog(this, R.style.Theme_BeatFlow_BottomSheetDialog)
+        val view = layoutInflater.inflate(R.layout.bottom_sheet_song_options, null)
+        dialog.setContentView(view)
+
+        val tvTitle = view.findViewById<TextView>(R.id.tvSheetSongTitle)
+        val tvArtist = view.findViewById<TextView>(R.id.tvSheetSongArtist)
+        val btnShare = view.findViewById<View>(R.id.btnSheetShare)
+        val btnDelete = view.findViewById<View>(R.id.btnSheetDelete)
+
+        tvTitle.text = song.trackName
+        tvArtist.text = song.artistName
+
+        btnShare.setOnClickListener {
+            dialog.dismiss()
+            shareSong(song)
+        }
+
+        btnDelete.setOnClickListener {
+            dialog.dismiss()
+            showDeleteConfirmationDialog(song)
+        }
+
+        dialog.show()
+    }
+
+    private fun showDeleteConfirmationDialog(song: Song) {
+        MaterialAlertDialogBuilder(this, R.style.Theme_BeatFlow_AlertDialog)
+            .setTitle(getString(R.string.delete_song_dialog_title))
+            .setMessage(getString(R.string.delete_song_dialog_message))
+            .setNegativeButton(getString(R.string.btn_cancel)) { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setPositiveButton(getString(R.string.btn_delete)) { dialog, _ ->
+                dialog.dismiss()
+                executeDeleteSong(song)
+            }
+            .show()
+    }
+
+    private fun executeDeleteSong(song: Song) {
+        if (song.isLocal) {
+            viewModel.deleteDeviceSong(
+                song = song,
+                onRequiresConfirmation = { intentSender ->
+                    pendingDeleteSong = song
+                    val intentSenderRequest = IntentSenderRequest.Builder(intentSender as IntentSender).build()
+                    deleteMediaLauncher.launch(intentSenderRequest)
+                },
+                onComplete = { result ->
+                    result.onSuccess {
+                        Toast.makeText(
+                            this,
+                            getString(R.string.delete_song_success, song.trackName),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }.onFailure { error ->
+                        Toast.makeText(
+                            this,
+                            getString(R.string.delete_song_error, song.trackName) + ": ${error.localizedMessage}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            )
+        } else {
+            viewModel.deleteOnlineSong(song) { result ->
+                result.onSuccess {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.delete_song_success, song.trackName),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }.onFailure { error ->
+                    Toast.makeText(
+                        this,
+                        getString(R.string.delete_song_error, song.trackName) + ": ${error.localizedMessage}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private fun shareSong(song: Song) {
+        try {
+            if (song.isLocal) {
+                val previewUrl = song.previewUrl
+                if (previewUrl.isNullOrBlank()) {
+                    Toast.makeText(this, getString(R.string.share_file_unavailable), Toast.LENGTH_SHORT).show()
+                    return
+                }
+                val contentUri = Uri.parse(previewUrl)
+                val mimeType = contentResolver.getType(contentUri) ?: "audio/*"
+
+                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                    putExtra(Intent.EXTRA_STREAM, contentUri)
+                    putExtra(Intent.EXTRA_SUBJECT, song.trackName)
+                    putExtra(Intent.EXTRA_TEXT, "${song.trackName} - ${song.artistName}")
+                    type = mimeType
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                val chooser = Intent.createChooser(sendIntent, getString(R.string.share_song_title))
+                startActivity(chooser)
+            } else {
+                val urlToShare = song.trackViewUrl?.takeIf { it.isNotBlank() }
+                    ?: song.previewUrl?.takeIf { it.isNotBlank() }
+                    ?: ""
+                val shareText = if (urlToShare.isNotBlank()) {
+                    "${song.trackName} - ${song.artistName}\n$urlToShare"
+                } else {
+                    "${song.trackName} - ${song.artistName}"
+                }
+                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                    putExtra(Intent.EXTRA_TEXT, shareText)
+                    type = "text/plain"
+                }
+                val chooser = Intent.createChooser(sendIntent, getString(R.string.share_song_title))
+                startActivity(chooser)
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Failed to share: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -441,32 +637,5 @@ class MainActivity : AppCompatActivity() {
         val currentTrackId = viewModel.currentPlayingSong.value?.trackId
         val isPlaying = viewModel.isPlaying.value
         songAdapter.updatePlaybackState(currentTrackId, isPlaying)
-    }
-
-    private fun showSongOverflowMenu(anchorView: View, song: Song) {
-        val popup = PopupMenu(this, anchorView)
-        popup.menuInflater.inflate(R.menu.menu_song_overflow, popup.menu)
-        popup.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.action_share -> {
-                    Toast.makeText(
-                        this,
-                        getString(R.string.action_share_toast, song.trackName),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    true
-                }
-                R.id.action_delete -> {
-                    Toast.makeText(
-                        this,
-                        getString(R.string.action_delete_toast, song.trackName),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    true
-                }
-                else -> false
-            }
-        }
-        popup.show()
     }
 }

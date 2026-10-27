@@ -1,5 +1,6 @@
 package com.example.beatflow.domain.repository
 
+import com.example.beatflow.domain.model.DeleteDeviceSongResult
 import com.example.beatflow.domain.model.Song
 
 /**
@@ -8,4 +9,5 @@ import com.example.beatflow.domain.model.Song
  */
 interface DeviceSongRepository {
     suspend fun getDeviceSongs(): Result<List<Song>>
+    suspend fun deleteDeviceSong(contentUri: String): DeleteDeviceSongResult
 }

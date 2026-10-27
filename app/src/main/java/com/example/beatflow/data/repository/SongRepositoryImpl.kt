@@ -60,4 +60,17 @@ class SongRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun deleteOnlineSong(trackId: Long): Result<Unit> = withContext(ioDispatcher) {
+        try {
+            val deletedCount = songDao.deleteSongById(trackId)
+            if (deletedCount > 0) {
+                Result.success(Unit)
+            } else {
+                Result.failure(NoSuchElementException("Song with trackId $trackId not found in local cache"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

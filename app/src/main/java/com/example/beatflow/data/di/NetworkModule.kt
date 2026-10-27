@@ -73,6 +73,14 @@ object NetworkModule {
         return com.example.beatflow.domain.usecase.GetDeviceSongsUseCase(deviceSongRepository)
     }
 
+    fun provideDeleteOnlineSongUseCase(): com.example.beatflow.domain.usecase.DeleteOnlineSongUseCase {
+        return com.example.beatflow.domain.usecase.DeleteOnlineSongUseCase(songRepository)
+    }
+
+    fun provideDeleteDeviceSongUseCase(): com.example.beatflow.domain.usecase.DeleteDeviceSongUseCase {
+        return com.example.beatflow.domain.usecase.DeleteDeviceSongUseCase(deviceSongRepository)
+    }
+
     fun provideMusicPlayer(): com.example.beatflow.domain.playback.MusicPlayer {
         return musicPlayer
     }

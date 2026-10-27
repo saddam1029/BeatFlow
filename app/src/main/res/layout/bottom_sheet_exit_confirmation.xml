@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="28dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/bg_tab_indicator"
+        android:backgroundTint="#2C3A4B" />
+
+    <!-- Sheet Title -->
+    <TextView
+        android:id="@+id/tvExitTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:fontFamily="sans-serif-medium"
+        android:text="@string/exit_dialog_title"
+        android:textColor="@color/home_text_primary"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <!-- Sheet Message -->
+    <TextView
+        android:id="@+id/tvExitMessage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:fontFamily="sans-serif"
+        android:text="@string/exit_dialog_message"
+        android:textColor="@color/home_text_secondary"
+        android:textSize="14sp" />
+
+    <!-- Button 1: "No, stay in app" (Must appear above Button 2) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnStayInApp"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="24dp"
+        android:backgroundTint="@color/home_accent_cyan"
+        android:fontFamily="sans-serif-medium"
+        android:text="@string/btn_stay_in_app"
+        android:textAllCaps="false"
+        android:textColor="@color/home_text_dark"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        app:cornerRadius="14dp"
+        app:elevation="0dp" />
+
+    <!-- Button 2: "Yes, exit" (Must appear below Button 1) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnExitApp"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="12dp"
+        android:fontFamily="sans-serif-medium"
+        android:text="@string/btn_exit_app"
+        android:textAllCaps="false"
+        android:textColor="#F87171"
+        android:textSize="15sp"
+        app:cornerRadius="14dp"
+        app:strokeColor="#1E293B"
+        app:strokeWidth="1dp" />
+
+</LinearLayout>

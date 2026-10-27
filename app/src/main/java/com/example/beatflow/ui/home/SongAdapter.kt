@@ -78,16 +78,16 @@ class SongAdapter(
             if (!artworkUrl.isNullOrBlank()) {
                 Glide.with(itemView.context)
                     .load(artworkUrl)
-                    .placeholder(R.drawable.bg_artwork_placeholder)
-                    .error(R.drawable.bg_artwork_error)
-                    .fallback(R.drawable.bg_artwork_placeholder)
+                    .placeholder(R.drawable.ic_beatflow_logo)
+                    .error(R.drawable.ic_beatflow_logo)
+                    .fallback(R.drawable.ic_beatflow_logo)
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .centerCrop()
                     .into(ivAlbumArt)
             } else {
-                // Clear any previous recycling image and show neutral fallback
+                // Clear any previous recycling image and show BeatFlow logo fallback
                 Glide.with(itemView.context).clear(ivAlbumArt)
-                ivAlbumArt.setImageResource(R.drawable.bg_artwork_placeholder)
+                ivAlbumArt.setImageResource(R.drawable.ic_beatflow_logo)
             }
 
             val isCurrentSongActive = (song.trackId == currentPlayingSongId && isPlaying)

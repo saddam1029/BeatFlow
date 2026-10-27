@@ -36,4 +36,17 @@
     <string name="permission_permanently_denied_desc">Audio access permission was denied. Please allow audio access in App Settings to play your local music.</string>
     <string name="btn_grant_permission">Grant Permission</string>
     <string name="btn_open_settings">Open Settings</string>
+    <string name="delete_song_dialog_title">Delete Song?</string>
+    <string name="delete_song_dialog_message">Are you sure you want to delete this song?</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_delete">Delete</string>
+    <string name="delete_song_success">\"%1$s\" deleted successfully</string>
+    <string name="delete_song_error">Failed to delete \"%1$s\"</string>
+    <string name="delete_song_cancelled">Deletion cancelled</string>
+    <string name="exit_dialog_title">Exit App</string>
+    <string name="exit_dialog_message">Are you sure you want to exit?</string>
+    <string name="btn_stay_in_app">No, stay in app</string>
+    <string name="btn_exit_app">Yes, exit</string>
+    <string name="share_song_title">Share song</string>
+    <string name="share_file_unavailable">Audio file is not available to share</string>
 </resources>

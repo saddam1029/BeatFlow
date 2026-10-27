@@ -1,9 +1,12 @@
 package com.example.beatflow.data.repository
 
+import android.app.RecoverableSecurityException
 import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.provider.MediaStore
+import com.example.beatflow.domain.model.DeleteDeviceSongResult
 import com.example.beatflow.domain.model.Song
 import com.example.beatflow.domain.repository.DeviceSongRepository
 import kotlinx.coroutines.CoroutineDispatcher
@@ -85,7 +88,8 @@ class DeviceSongRepositoryImpl(
                             artworkUrl = artworkUriString,
                             previewUrl = contentUri.toString(),
                             trackViewUrl = null,
-                            durationMs = duration
+                            durationMs = duration,
+                            isLocal = true
                         )
                     )
                 }
@@ -96,6 +100,34 @@ class DeviceSongRepositoryImpl(
             Result.failure(e)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteDeviceSong(contentUri: String): DeleteDeviceSongResult = withContext(ioDispatcher) {
+        try {
+            val uri = Uri.parse(contentUri)
+            // On Android 11+ (API 30+), MediaStore.createDeleteRequest is the official scoped storage deletion API
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val pendingIntent = MediaStore.createDeleteRequest(context.contentResolver, listOf(uri))
+                DeleteDeviceSongResult.RequiresConfirmation(pendingIntent.intentSender)
+            } else {
+                try {
+                    val deletedRows = context.contentResolver.delete(uri, null, null)
+                    if (deletedRows > 0) {
+                        DeleteDeviceSongResult.Success
+                    } else {
+                        DeleteDeviceSongResult.Failure("File not found or could not be deleted")
+                    }
+                } catch (e: SecurityException) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && e is RecoverableSecurityException) {
+                        DeleteDeviceSongResult.RequiresConfirmation(e.userAction.actionIntent.intentSender)
+                    } else {
+                        DeleteDeviceSongResult.Failure(e.localizedMessage ?: "Permission denied to delete file")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            DeleteDeviceSongResult.Failure(e.localizedMessage ?: "Failed to delete audio file")
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.example.beatflow
 
+import com.example.beatflow.domain.model.DeleteDeviceSongResult
 import com.example.beatflow.domain.model.Song
 import com.example.beatflow.domain.repository.DeviceSongRepository
 import com.example.beatflow.domain.usecase.GetDeviceSongsUseCase
@@ -14,6 +15,7 @@ class GetDeviceSongsUseCaseTest {
         var result: Result<List<Song>>
     ) : DeviceSongRepository {
         override suspend fun getDeviceSongs(): Result<List<Song>> = result
+        override suspend fun deleteDeviceSong(contentUri: String): DeleteDeviceSongResult = DeleteDeviceSongResult.Success
     }
 
     @Test

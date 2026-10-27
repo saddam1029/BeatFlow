@@ -11,5 +11,6 @@ data class Song(
     val artworkUrl: String?,
     val previewUrl: String?,
     val trackViewUrl: String?,
-    val durationMs: Long = 0L
+    val durationMs: Long = 0L,
+    val isLocal: Boolean = false
 )
