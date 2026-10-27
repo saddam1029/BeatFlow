@@ -6,29 +6,24 @@
     android:id="@+id/cardSongItem"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="12dp"
-    android:layout_marginVertical="4dp"
+    android:layout_marginHorizontal="20dp"
+    android:layout_marginVertical="5dp"
     app:cardBackgroundColor="@color/home_surface"
-    app:cardCornerRadius="@dimen/_9sdp"
+    app:cardCornerRadius="16dp"
     app:cardElevation="0dp"
-    app:strokeColor="@color/home_divider"
-    app:strokeWidth="1dp">
+    app:strokeWidth="0dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="@dimen/_6sdp">
+        android:padding="10dp">
 
-        <!--
-            Album artwork container.
-            ivAlbumArt is an empty ImageView ready for your custom artwork to be loaded dynamically.
-        -->
+        <!-- Album artwork container -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardAlbumArt"
-            android:layout_width="@dimen/_47sdp"
-            android:layout_height="@dimen/_47sdp"
-            app:cardBackgroundColor="@color/home_surface_elevated"
-            app:cardCornerRadius="@dimen/_5sdp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -43,67 +38,80 @@
                 android:scaleType="centerCrop" />
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Track Name -->
+        <!-- Track Title -->
         <TextView
             android:id="@+id/tvTrackName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/_10sdp"
-            android:layout_marginEnd="8dp"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="10dp"
             android:ellipsize="end"
             android:fontFamily="sans-serif-medium"
             android:maxLines="1"
             android:textColor="@color/home_text_primary"
-            android:textSize="@dimen/_12sdp"
+            android:textSize="16sp"
             app:layout_constraintBottom_toTopOf="@+id/tvArtistName"
-            app:layout_constraintEnd_toStartOf="@+id/btnPlaySong"
+            app:layout_constraintEnd_toStartOf="@+id/cardPlaySong"
             app:layout_constraintStart_toEndOf="@+id/cardAlbumArt"
-            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/cardAlbumArt"
             app:layout_constraintVertical_chainStyle="packed"
-            tools:text="Track Title" />
+            tools:text="A Moment Apart" />
 
         <!-- Artist Name -->
         <TextView
             android:id="@+id/tvArtistName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/_10sdp"
-            android:layout_marginTop="2dp"
-            android:layout_marginEnd="8dp"
+            android:layout_marginStart="14dp"
+            android:layout_marginTop="3dp"
+            android:layout_marginEnd="10dp"
             android:ellipsize="end"
             android:fontFamily="sans-serif"
             android:maxLines="1"
             android:textColor="@color/home_text_secondary"
-            android:textSize="@dimen/_9sdp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/btnPlaySong"
+            android:textSize="13sp"
+            app:layout_constraintBottom_toBottomOf="@+id/cardAlbumArt"
+            app:layout_constraintEnd_toStartOf="@+id/cardPlaySong"
             app:layout_constraintStart_toEndOf="@+id/cardAlbumArt"
             app:layout_constraintTop_toBottomOf="@+id/tvTrackName"
-            tools:text="Artist Name" />
+            tools:text="ODESZA" />
 
-        <!-- Play / Pause Action Button -->
-        <ImageButton
-            android:id="@+id/btnPlaySong"
-            android:layout_width="@dimen/_36sdp"
-            android:layout_height="@dimen/_36sdp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/cd_play_song"
-            android:padding="@dimen/_5sdp"
-            android:src="@android:drawable/ic_media_play"
+        <!-- Circular Play / Pause Button -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardPlaySong"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginEnd="4dp"
+            app:cardBackgroundColor="@color/home_play_btn_bg"
+            app:cardCornerRadius="19dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/btnSongOverflow"
-            app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/home_accent_cyan" />
+            app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Overflow Menu Button for Future Delete and Share -->
+            <ImageButton
+                android:id="@+id/btnPlaySong"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/cd_play_song"
+                android:padding="9dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_play_arrow"
+                app:tint="@color/home_accent_cyan" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Overflow Menu Button -->
         <ImageButton
             android:id="@+id/btnSongOverflow"
-            android:layout_width="@dimen/_36sdp"
-            android:layout_height="@dimen/_36sdp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/cd_song_overflow"
-            android:padding="@dimen/_5sdp"
-            android:src="@android:drawable/ic_menu_more"
+            android:padding="6dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_more_vert"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"

@@ -27,7 +27,7 @@ import com.example.beatflow.domain.model.Song
 import com.example.beatflow.ui.home.HomeUiState
 import com.example.beatflow.ui.home.HomeViewModel
 import com.example.beatflow.ui.home.SongAdapter
-import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.launch
 
@@ -36,18 +36,30 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: HomeViewModel by viewModels()
     private lateinit var songAdapter: SongAdapter
 
-    // UI Components
-    private lateinit var toolbarHome: MaterialToolbar
+    // Top Bar UI Components
+    private lateinit var btnSearch: ImageButton
+    private lateinit var btnTune: ImageButton
+
+    // Tab & Content UI Components
     private lateinit var tabLayout: TabLayout
+    private lateinit var layoutSectionHeader: View
+    private lateinit var tvSongCount: TextView
     private lateinit var rvSongs: RecyclerView
     private lateinit var progressBar: ProgressBar
+
+    // Empty & Offline State UI Components
     private lateinit var layoutEmptyState: LinearLayout
+    private lateinit var ivEmptyIcon: ImageView
     private lateinit var tvEmptyTitle: TextView
     private lateinit var tvEmptySubtitle: TextView
+    private lateinit var btnTryAgain: MaterialButton
+
+    // Mini Player UI Components
     private lateinit var layoutMiniPlayer: View
     private lateinit var ivMiniPlayerArt: ImageView
     private lateinit var tvMiniPlayerTitle: TextView
     private lateinit var tvMiniPlayerArtist: TextView
+    private lateinit var ivMiniPlayerBars: ImageView
     private lateinit var btnMiniPlayerPlay: ImageButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,25 +69,35 @@ class MainActivity : AppCompatActivity() {
 
         initViews()
         applyWindowInsets()
-        setupToolbar()
+        setupTopBarActions()
         setupTabs()
         setupRecyclerView()
         setupMiniPlayer()
+        setupEmptyStateActions()
         observeViewModel()
     }
 
     private fun initViews() {
-        toolbarHome = findViewById(R.id.toolbarHome)
+        btnSearch = findViewById(R.id.btnSearch)
+        btnTune = findViewById(R.id.btnTune)
+
         tabLayout = findViewById(R.id.tabLayout)
+        layoutSectionHeader = findViewById(R.id.layoutSectionHeader)
+        tvSongCount = findViewById(R.id.tvSongCount)
         rvSongs = findViewById(R.id.rvSongs)
         progressBar = findViewById(R.id.progressBar)
+
         layoutEmptyState = findViewById(R.id.layoutEmptyState)
+        ivEmptyIcon = findViewById(R.id.ivEmptyIcon)
         tvEmptyTitle = findViewById(R.id.tvEmptyTitle)
         tvEmptySubtitle = findViewById(R.id.tvEmptySubtitle)
+        btnTryAgain = findViewById(R.id.btnTryAgain)
+
         layoutMiniPlayer = findViewById(R.id.layoutMiniPlayer)
         ivMiniPlayerArt = findViewById(R.id.ivMiniPlayerArt)
         tvMiniPlayerTitle = findViewById(R.id.tvMiniPlayerTitle)
         tvMiniPlayerArtist = findViewById(R.id.tvMiniPlayerArtist)
+        ivMiniPlayerBars = findViewById(R.id.ivMiniPlayerBars)
         btnMiniPlayerPlay = findViewById(R.id.btnMiniPlayerPlay)
     }
 
@@ -87,8 +109,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupToolbar() {
-        toolbarHome.title = getString(R.string.home_title)
+    private fun setupTopBarActions() {
+        btnSearch.setOnClickListener {
+            Toast.makeText(this, getString(R.string.cd_search), Toast.LENGTH_SHORT).show()
+        }
+        btnTune.setOnClickListener {
+            Toast.makeText(this, getString(R.string.cd_filter), Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun setupTabs() {
@@ -126,6 +153,12 @@ class MainActivity : AppCompatActivity() {
     private fun setupMiniPlayer() {
         btnMiniPlayerPlay.setOnClickListener {
             viewModel.togglePlayPause()
+        }
+    }
+
+    private fun setupEmptyStateActions() {
+        btnTryAgain.setOnClickListener {
+            viewModel.loadOnlineSongs()
         }
     }
 
@@ -172,11 +205,12 @@ class MainActivity : AppCompatActivity() {
                 launch {
                     viewModel.isPlaying.collect { isPlaying ->
                         val iconRes = if (isPlaying) {
-                            android.R.drawable.ic_media_pause
+                            R.drawable.ic_pause_dark
                         } else {
-                            android.R.drawable.ic_media_play
+                            R.drawable.ic_play_dark
                         }
                         btnMiniPlayerPlay.setImageResource(iconRes)
+                        ivMiniPlayerBars.visibility = if (isPlaying) View.VISIBLE else View.GONE
                         updateAdapterPlayback()
                     }
                 }
@@ -198,27 +232,36 @@ class MainActivity : AppCompatActivity() {
             is HomeUiState.Loading -> {
                 progressBar.visibility = View.VISIBLE
                 rvSongs.visibility = View.GONE
+                layoutSectionHeader.visibility = View.GONE
                 layoutEmptyState.visibility = View.GONE
             }
             is HomeUiState.Success -> {
                 progressBar.visibility = View.GONE
                 layoutEmptyState.visibility = View.GONE
+                layoutSectionHeader.visibility = View.VISIBLE
+                tvSongCount.text = getString(R.string.songs_count_format, state.songs.size)
                 rvSongs.visibility = View.VISIBLE
                 songAdapter.submitList(state.songs)
             }
             is HomeUiState.Empty -> {
                 progressBar.visibility = View.GONE
                 rvSongs.visibility = View.GONE
+                layoutSectionHeader.visibility = View.GONE
                 layoutEmptyState.visibility = View.VISIBLE
+                ivEmptyIcon.setImageResource(R.drawable.ic_music_note)
                 tvEmptyTitle.text = state.title
                 tvEmptySubtitle.text = state.message
+                btnTryAgain.visibility = View.GONE
             }
             is HomeUiState.Error -> {
                 progressBar.visibility = View.GONE
                 rvSongs.visibility = View.GONE
+                layoutSectionHeader.visibility = View.GONE
                 layoutEmptyState.visibility = View.VISIBLE
+                ivEmptyIcon.setImageResource(R.drawable.ic_wifi_off)
                 tvEmptyTitle.text = state.title
                 tvEmptySubtitle.text = state.message
+                btnTryAgain.visibility = View.VISIBLE
             }
         }
     }

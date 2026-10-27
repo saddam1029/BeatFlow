@@ -5,11 +5,19 @@
     <string name="splash_logo_description">App Logo</string>
 
     <!-- Home Screen Strings -->
-    <string name="home_title">Music Player</string>
+    <string name="home_title">Beat Flow</string>
     <string name="tab_online_songs">Online Songs</string>
     <string name="tab_device_songs">Device Songs</string>
+    <string name="home_section_all_songs">All songs</string>
+    <string name="songs_count_format">%1$d songs</string>
     <string name="empty_songs_title">No Songs Available</string>
-    <string name="empty_device_songs_desc">No songs found on your device yet.</string>
+    <string name="empty_device_songs_desc">Music saved on your device\nwill appear here.</string>
+    <string name="empty_device_title">No songs on this device</string>
+    <string name="empty_offline_title">You\'re offline</string>
+    <string name="empty_offline_desc">Check your internet connection\nand try again.</string>
+    <string name="btn_try_again">Try again</string>
+    <string name="cd_search">Search songs</string>
+    <string name="cd_filter">Equalizer and settings</string>
     <string name="cd_album_art">Album artwork</string>
     <string name="cd_play_song">Play song</string>
     <string name="cd_song_overflow">Song options</string>
@@ -19,6 +27,6 @@
     <string name="action_share_toast">Share: %1$s</string>
     <string name="action_delete_toast">Delete: %1$s</string>
     <string name="error_loading_songs">Unable to load songs</string>
-    <string name="error_check_connection">Please check your internet connection and try again.</string>
+    <string name="error_check_connection">Check your internet connection\nand try again.</string>
     <string name="empty_online_songs_desc">No songs found for this search term.</string>
 </resources>

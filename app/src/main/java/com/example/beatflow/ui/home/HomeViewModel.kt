@@ -42,8 +42,8 @@ class HomeViewModel(
             HomeTab.DEVICE -> {
                 // Device songs feature is scoped for a future task
                 _uiState.value = HomeUiState.Empty(
-                    title = "No Songs Available",
-                    message = "No songs found on your device yet."
+                    title = "No songs on this device",
+                    message = "Music saved on your device\nwill appear here."
                 )
             }
         }
@@ -57,7 +57,7 @@ class HomeViewModel(
                 .onSuccess { songs ->
                     if (songs.isEmpty()) {
                         _uiState.value = HomeUiState.Empty(
-                            title = "No Songs Available",
+                            title = "No songs found",
                             message = "No songs found for \"$term\"."
                         )
                     } else {
@@ -65,16 +65,20 @@ class HomeViewModel(
                     }
                 }
                 .onFailure { error ->
-                    val readableMessage = when {
-                        error.message?.contains("Unable to resolve host", ignoreCase = true) == true ->
-                            "No internet connection. Please check your network and try again."
-                        error.message?.contains("timeout", ignoreCase = true) == true ->
-                            "Connection timed out. Please try again."
-                        else -> error.localizedMessage ?: "Failed to load online songs."
+                    val isNetworkIssue = error.message?.contains("Unable to resolve host", ignoreCase = true) == true ||
+                            error.message?.contains("timeout", ignoreCase = true) == true ||
+                            error.message?.contains("connect", ignoreCase = true) == true
+
+                    val title = if (isNetworkIssue) "You're offline" else "Unable to Load Songs"
+                    val message = if (isNetworkIssue) {
+                        "Check your internet connection\nand try again."
+                    } else {
+                        error.localizedMessage ?: "Failed to load online songs."
                     }
+
                     _uiState.value = HomeUiState.Error(
-                        title = "Unable to Load Songs",
-                        message = readableMessage
+                        title = title,
+                        message = message
                     )
                 }
         }

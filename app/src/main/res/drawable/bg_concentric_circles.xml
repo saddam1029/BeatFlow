@@ -1,0 +1,31 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="160"
+    android:viewportHeight="160">
+
+    <!-- Outer Orbit Circle -->
+    <path
+        android:strokeColor="#102936"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000"
+        android:pathData="M80,80 m-72,0 a72,72 0 1,0 144,0 a72,72 0 1,0 -144,0" />
+
+    <!-- Inner Orbit Circle -->
+    <path
+        android:strokeColor="#0E232E"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000"
+        android:pathData="M80,80 m-52,0 a52,52 0 1,0 104,0 a52,52 0 1,0 -104,0" />
+
+    <!-- Accent Orbit Dot 1 (Upper Right) -->
+    <path
+        android:fillColor="#22D3EE"
+        android:pathData="M131,29 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+
+    <!-- Accent Orbit Dot 2 (Lower Left) -->
+    <path
+        android:fillColor="#22D3EE"
+        android:pathData="M29,131 m-1.5,0 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0" />
+
+</vector>

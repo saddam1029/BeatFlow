@@ -82,8 +82,8 @@ class SongAdapter(
 
             val isCurrentSongActive = (song.trackId == currentPlayingSongId && isPlaying)
             btnPlaySong.setImageResource(
-                if (isCurrentSongActive) android.R.drawable.ic_media_pause
-                else android.R.drawable.ic_media_play
+                if (isCurrentSongActive) R.drawable.ic_pause
+                else R.drawable.ic_play_arrow
             )
 
             itemView.setOnClickListener { onSongClick(song) }
