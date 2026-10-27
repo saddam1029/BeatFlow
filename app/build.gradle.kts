@@ -78,5 +78,5 @@ dependencies {
     implementation(libs.glide)
 
     // Advertisements (Google Mobile Ads SDK)
-//    implementation(libs.play.services.ads)
+    implementation(libs.play.services.ads)
 }
