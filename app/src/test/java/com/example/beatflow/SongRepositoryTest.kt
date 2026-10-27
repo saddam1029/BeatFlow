@@ -2,6 +2,7 @@ package com.example.beatflow
 
 import com.example.beatflow.data.local.dao.SongDao
 import com.example.beatflow.data.local.entity.SongEntity
+import com.example.beatflow.data.mapper.formatDuration
 import com.example.beatflow.data.mapper.toDomain
 import com.example.beatflow.data.mapper.toEntity
 import com.example.beatflow.data.remote.ItunesApiService
@@ -156,6 +157,15 @@ class SongRepositoryTest {
         // Malformed non-HTTP URL returns null
         org.junit.Assert.assertNull(com.example.beatflow.data.mapper.getHighResArtworkUrl("file://local/art.png"))
         org.junit.Assert.assertNull(com.example.beatflow.data.mapper.getHighResArtworkUrl("invalid_url"))
+    }
+
+    @Test
+    fun test_formatDuration() {
+        assertEquals("4:15", formatDuration(255000L))
+        assertEquals("3:00", formatDuration(180000L))
+        assertEquals("0:45", formatDuration(45000L))
+        assertEquals("", formatDuration(null))
+        assertEquals("", formatDuration(0L))
     }
 }
 

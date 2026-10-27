@@ -137,7 +137,7 @@ class Media3MusicPlayer(
             while (isActive) {
                 val controller = mediaController
                 if (controller != null && controller.isPlaying) {
-                    val duration = controller.duration
+                    val duration = if (controller.duration > 0) controller.duration else (_currentSong.value?.durationMs ?: 0L)
                     val position = controller.currentPosition
                     if (duration > 0) {
                         val progressPercent = ((position.toDouble() / duration.toDouble()) * 100).toInt()

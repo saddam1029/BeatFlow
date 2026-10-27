@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.beatflow.R
+import com.example.beatflow.data.mapper.formatDuration
 import com.example.beatflow.data.mapper.resolveArtworkUri
 import com.example.beatflow.domain.model.Song
 
@@ -55,12 +56,21 @@ class SongAdapter(
         val ivAlbumArt: ImageView = itemView.findViewById(R.id.ivAlbumArt)
         val tvTrackName: TextView = itemView.findViewById(R.id.tvTrackName)
         val tvArtistName: TextView = itemView.findViewById(R.id.tvArtistName)
+        val tvSongTime: TextView = itemView.findViewById(R.id.tvSongTime)
         val btnPlaySong: ImageButton = itemView.findViewById(R.id.btnPlaySong)
         val btnSongOverflow: ImageButton = itemView.findViewById(R.id.btnSongOverflow)
 
         fun bind(song: Song) {
             tvTrackName.text = song.trackName
             tvArtistName.text = song.artistName
+
+            val formattedDuration = formatDuration(song.durationMs)
+            if (formattedDuration.isNotEmpty()) {
+                tvSongTime.visibility = View.VISIBLE
+                tvSongTime.text = formattedDuration
+            } else {
+                tvSongTime.visibility = View.GONE
+            }
 
             // Resolve artwork URL (high-res for iTunes, content URI for local) safely
             val artworkUrl = resolveArtworkUri(song.artworkUrl)

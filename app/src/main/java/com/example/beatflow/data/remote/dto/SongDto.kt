@@ -19,5 +19,7 @@ data class SongDto(
     @SerializedName("previewUrl")
     val previewUrl: String?,
     @SerializedName("trackViewUrl")
-    val trackViewUrl: String?
+    val trackViewUrl: String?,
+    @SerializedName("trackTimeMillis")
+    val trackTimeMillis: Long? = null
 )

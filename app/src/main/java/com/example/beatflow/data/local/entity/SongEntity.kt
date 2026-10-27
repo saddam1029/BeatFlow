@@ -14,5 +14,6 @@ data class SongEntity(
     val artistName: String,
     val artworkUrl: String?,
     val previewUrl: String?,
-    val trackViewUrl: String?
+    val trackViewUrl: String?,
+    val trackTimeMillis: Long? = 0L
 )

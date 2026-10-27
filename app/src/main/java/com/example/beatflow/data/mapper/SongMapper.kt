@@ -3,6 +3,7 @@ package com.example.beatflow.data.mapper
 import com.example.beatflow.data.local.entity.SongEntity
 import com.example.beatflow.data.remote.dto.SongDto
 import com.example.beatflow.domain.model.Song
+import java.util.Locale
 
 /**
  * Maps between API DTOs, Room Entities, and Domain models.
@@ -43,6 +44,17 @@ fun resolveArtworkUri(url: String?): String? {
     return getHighResArtworkUrl(trimmed)
 }
 
+/**
+ * Formats duration in milliseconds to mm:ss format (e.g., 255000ms -> "4:15").
+ */
+fun formatDuration(durationMs: Long?): String {
+    if (durationMs == null || durationMs <= 0) return ""
+    val totalSeconds = durationMs / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
+}
+
 // --- DTO to Domain ---
 fun SongDto.toDomain(): Song? {
     val id = trackId ?: return null
@@ -50,6 +62,7 @@ fun SongDto.toDomain(): Song? {
     val artist = artistName?.takeIf { it.isNotBlank() } ?: "Unknown Artist"
     val rawArtwork = artworkUrl100 ?: artworkUrl60
     val artwork = getHighResArtworkUrl(rawArtwork)
+    val duration = trackTimeMillis ?: 0L
 
     return Song(
         trackId = id,
@@ -57,7 +70,8 @@ fun SongDto.toDomain(): Song? {
         artistName = artist,
         artworkUrl = artwork,
         previewUrl = previewUrl,
-        trackViewUrl = trackViewUrl
+        trackViewUrl = trackViewUrl,
+        durationMs = duration
     )
 }
 
@@ -74,7 +88,8 @@ fun Song.toEntity(): SongEntity {
         artistName = artistName,
         artworkUrl = artworkUrl,
         previewUrl = previewUrl,
-        trackViewUrl = trackViewUrl
+        trackViewUrl = trackViewUrl,
+        trackTimeMillis = durationMs
     )
 }
 
@@ -90,7 +105,8 @@ fun SongEntity.toDomain(): Song {
         artistName = artistName,
         artworkUrl = artworkUrl,
         previewUrl = previewUrl,
-        trackViewUrl = trackViewUrl
+        trackViewUrl = trackViewUrl,
+        durationMs = trackTimeMillis ?: 0L
     )
 }
 

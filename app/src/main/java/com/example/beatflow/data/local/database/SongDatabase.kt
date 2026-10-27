@@ -12,7 +12,7 @@ import com.example.beatflow.data.local.entity.SongEntity
  */
 @Database(
     entities = [SongEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class SongDatabase : RoomDatabase() {
@@ -31,7 +31,7 @@ abstract class SongDatabase : RoomDatabase() {
                     context.applicationContext,
                     SongDatabase::class.java,
                     DATABASE_NAME
-                ).build().also { instance = it }
+                ).fallbackToDestructiveMigration().build().also { instance = it }
             }
         }
     }
