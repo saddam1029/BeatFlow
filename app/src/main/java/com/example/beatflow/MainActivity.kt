@@ -1,7 +1,12 @@
 package com.example.beatflow
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -37,8 +42,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var songAdapter: SongAdapter
 
     // Top Bar UI Components
+    private lateinit var layoutHeaderDefault: View
+    private lateinit var layoutSearch: View
     private lateinit var btnSearch: ImageButton
-    private lateinit var btnTune: ImageButton
+    private lateinit var etSearch: EditText
+    private lateinit var btnCancelSearch: ImageButton
 
     // Tab & Content UI Components
     private lateinit var tabLayout: TabLayout
@@ -56,6 +64,7 @@ class MainActivity : AppCompatActivity() {
 
     // Mini Player UI Components
     private lateinit var layoutMiniPlayer: View
+    private lateinit var clPlay: View
     private lateinit var ivMiniPlayerArt: ImageView
     private lateinit var tvMiniPlayerTitle: TextView
     private lateinit var tvMiniPlayerArtist: TextView
@@ -78,8 +87,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
+        layoutHeaderDefault = findViewById(R.id.layoutHeaderDefault)
+        layoutSearch = findViewById(R.id.layoutSearch)
         btnSearch = findViewById(R.id.btnSearch)
-        btnTune = findViewById(R.id.btnTune)
+        etSearch = findViewById(R.id.etSearch)
+        btnCancelSearch = findViewById(R.id.btnCancelSearch)
 
         tabLayout = findViewById(R.id.tabLayout)
         layoutSectionHeader = findViewById(R.id.layoutSectionHeader)
@@ -94,6 +106,7 @@ class MainActivity : AppCompatActivity() {
         btnTryAgain = findViewById(R.id.btnTryAgain)
 
         layoutMiniPlayer = findViewById(R.id.layoutMiniPlayer)
+        clPlay = findViewById(R.id.clPlay)
         ivMiniPlayerArt = findViewById(R.id.ivMiniPlayerArt)
         tvMiniPlayerTitle = findViewById(R.id.tvMiniPlayerTitle)
         tvMiniPlayerArtist = findViewById(R.id.tvMiniPlayerArtist)
@@ -111,11 +124,58 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupTopBarActions() {
         btnSearch.setOnClickListener {
-            Toast.makeText(this, getString(R.string.cd_search), Toast.LENGTH_SHORT).show()
+            showSearchBar()
         }
-        btnTune.setOnClickListener {
-            Toast.makeText(this, getString(R.string.cd_filter), Toast.LENGTH_SHORT).show()
+
+        btnCancelSearch.setOnClickListener {
+            if (!etSearch.text.isNullOrEmpty()) {
+                etSearch.text.clear()
+            } else {
+                hideSearchBar()
+            }
         }
+
+        etSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                viewModel.filterSongs(s?.toString() ?: "")
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        etSearch.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                val query = etSearch.text.toString().trim()
+                if (query.isNotEmpty()) {
+                    viewModel.loadOnlineSongs(query)
+                }
+                hideKeyboard()
+                true
+            } else {
+                false
+            }
+        }
+    }
+
+    private fun showSearchBar() {
+        layoutHeaderDefault.visibility = View.GONE
+        layoutSearch.visibility = View.VISIBLE
+        etSearch.requestFocus()
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.showSoftInput(etSearch, 0)
+    }
+
+    private fun hideSearchBar() {
+        etSearch.text?.clear()
+        viewModel.clearSearch()
+        layoutSearch.visibility = View.GONE
+        layoutHeaderDefault.visibility = View.VISIBLE
+        hideKeyboard()
+    }
+
+    private fun hideKeyboard() {
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(etSearch.windowToken, 0)
     }
 
     private fun setupTabs() {
@@ -151,6 +211,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupMiniPlayer() {
+        // Intercept/consume click events on the mini player container and clPlay layout
+        // so touch events never leak through to the RecyclerView items behind clPlay.
+        layoutMiniPlayer.setOnClickListener {
+            viewModel.togglePlayPause()
+        }
+        clPlay.setOnClickListener {
+            viewModel.togglePlayPause()
+        }
         btnMiniPlayerPlay.setOnClickListener {
             viewModel.togglePlayPause()
         }

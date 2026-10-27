@@ -9,7 +9,7 @@
     android:background="@color/home_background"
     tools:context=".MainActivity">
 
-    <!-- Top App Bar: App Logo, Title, Search, and Tune/Equalizer Icons -->
+    <!-- Top App Bar: Logo, Title, Search, and Search Bar Overlay -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/layoutTopBar"
         android:layout_width="match_parent"
@@ -21,62 +21,117 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- App Logo Glyph -->
-        <ImageView
-            android:id="@+id/ivLogo"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:contentDescription="@string/splash_logo_description"
-            android:src="@drawable/ic_beatflow_logo"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <!-- App Name -->
-        <TextView
-            android:id="@+id/tvAppName"
-            android:layout_width="wrap_content"
+        <!-- Default Header Container -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/layoutHeaderDefault"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:fontFamily="sans-serif-medium"
-            android:text="@string/home_title"
-            android:textColor="@color/home_text_primary"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/ivLogo"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <!-- Equalizer / Sliders Button -->
-        <ImageButton
-            android:id="@+id/btnTune"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/cd_filter"
-            android:padding="8dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_tune"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/home_text_secondary" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Search Button -->
-        <ImageButton
-            android:id="@+id/btnSearch"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginEnd="6dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/cd_search"
-            android:padding="8dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_search"
+            <!-- App Logo Glyph -->
+            <ImageView
+                android:id="@+id/ivLogo"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:contentDescription="@string/splash_logo_description"
+                android:src="@drawable/ic_beatflow_logo"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <!-- App Name -->
+            <TextView
+                android:id="@+id/tvAppName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/home_title"
+                android:textColor="@color/home_text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/ivLogo"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <!-- Search Trigger Button -->
+            <ImageButton
+                android:id="@+id/btnSearch"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_search"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_search"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:tint="@color/home_text_secondary" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Search Bar Layout (Hidden by default, shown when btnSearch is clicked) -->
+        <LinearLayout
+            android:id="@+id/layoutSearch"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:background="@drawable/bg_search_input"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/btnTune"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/home_text_secondary" />
+            tools:visibility="visible">
+
+            <!-- Search Start Icon -->
+            <ImageView
+                android:id="@+id/ivSearchStart"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_search"
+                app:tint="@color/home_text_secondary" />
+
+            <!-- Search Input Field -->
+            <EditText
+                android:id="@+id/etSearch"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="8dp"
+                android:autofillHints=""
+                android:background="@null"
+                android:fontFamily="sans-serif"
+                android:hint="@string/search_hint"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:textColor="@color/home_text_primary"
+                android:textColorHint="@color/home_text_secondary"
+                android:textSize="15sp" />
+
+            <!-- Cancel / Clear Search Button -->
+            <ImageButton
+                android:id="@+id/btnCancelSearch"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_cancel_search"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_close"
+                app:tint="@color/home_text_secondary" />
+
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -268,6 +323,8 @@
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="16dp"
         android:layout_marginBottom="16dp"
+        android:clickable="true"
+        android:focusable="true"
         android:visibility="gone"
         app:cardBackgroundColor="@color/home_mini_player_bg"
         app:cardCornerRadius="20dp"
@@ -280,8 +337,11 @@
         tools:visibility="visible">
 
         <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/clPlay"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true">
 
             <!-- Artwork Container -->
             <com.google.android.material.card.MaterialCardView

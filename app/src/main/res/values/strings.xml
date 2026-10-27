@@ -16,6 +16,8 @@
     <string name="empty_offline_title">You\'re offline</string>
     <string name="empty_offline_desc">Check your internet connection\nand try again.</string>
     <string name="btn_try_again">Try again</string>
+    <string name="search_hint">Search&#8230;</string>
+    <string name="cd_cancel_search">Cancel search</string>
     <string name="cd_search">Search songs</string>
     <string name="cd_filter">Equalizer and settings</string>
     <string name="cd_album_art">Album artwork</string>
