@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">BeatFlow</string>
+    <string name="splash_app_name">Music Player</string>
+    <string name="splash_subtitle">Your music, your mood.</string>
+    <string name="splash_logo_description">App Logo</string>
+</resources>

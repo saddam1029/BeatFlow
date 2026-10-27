@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Splash Screen Color Palette: Dark Navy/Black with Electric Cyan Accent -->
+    <color name="splash_gradient_start">#0B132B</color>
+    <color name="splash_gradient_center">#070B19</color>
+    <color name="splash_gradient_end">#020408</color>
+
+    <color name="splash_accent_cyan">#00E5FF</color>
+    <color name="splash_text_primary">#FFFFFF</color>
+    <color name="splash_text_secondary">#94A3B8</color>
+
+    <color name="splash_logo_placeholder_bg">#111A2E</color>
+    <color name="splash_logo_placeholder_stroke">#1E2C4A</color>
+
+    <color name="splash_background">#070B19</color>
+    <color name="splash_title">#FFFFFF</color>
+    <color name="splash_accent">#00E5FF</color>
+</resources>
