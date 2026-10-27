@@ -254,6 +254,11 @@ class HomeViewModel(
 
         viewModelScope.launch {
             try {
+                // If the deleted song is currently playing, safely stop playback
+                if (currentPlayingSong.value?.trackId == song.trackId) {
+                    musicPlayer.stop()
+                }
+
                 val previewUrl = song.previewUrl ?: run {
                     isDeleteInProgress = false
                     onComplete(Result.failure(IllegalArgumentException("Song content URI is missing")))
@@ -262,8 +267,13 @@ class HomeViewModel(
 
                 when (val result = deleteDeviceSongUseCase(previewUrl)) {
                     is DeleteDeviceSongResult.Success -> {
+                        allDeviceSongs = allDeviceSongs.filter { it.trackId != song.trackId }
+                        updateDeviceUiState()
+                        getDeviceSongsUseCase().onSuccess { freshSongs ->
+                            allDeviceSongs = freshSongs
+                            updateDeviceUiState()
+                        }
                         isDeleteInProgress = false
-                        onDeviceSongDeleteConfirmed(song)
                         onComplete(Result.success(Unit))
                     }
                     is DeleteDeviceSongResult.RequiresConfirmation -> {
@@ -286,13 +296,33 @@ class HomeViewModel(
      * Invoked when deletion of a local audio file is confirmed by the system.
      */
     fun onDeviceSongDeleteConfirmed(song: Song) {
-        isDeleteInProgress = false
-        // Safely halt playback if deleted song is currently playing
-        if (currentPlayingSong.value?.trackId == song.trackId) {
-            musicPlayer.stop()
-        }
+        viewModelScope.launch {
+            try {
+                // Safely halt playback if deleted song is currently playing
+                if (currentPlayingSong.value?.trackId == song.trackId) {
+                    musicPlayer.stop()
+                }
 
-        allDeviceSongs = allDeviceSongs.filter { it.trackId != song.trackId }
+                val previewUrl = song.previewUrl
+                if (!previewUrl.isNullOrBlank()) {
+                    deleteDeviceSongUseCase.confirmDelete(previewUrl)
+                }
+
+                allDeviceSongs = allDeviceSongs.filter { it.trackId != song.trackId }
+                updateDeviceUiState()
+
+                // Re-query MediaStore to ensure disk state synchronization
+                getDeviceSongsUseCase().onSuccess { freshSongs ->
+                    allDeviceSongs = freshSongs
+                    updateDeviceUiState()
+                }
+            } finally {
+                isDeleteInProgress = false
+            }
+        }
+    }
+
+    private fun updateDeviceUiState() {
         val newState = if (allDeviceSongs.isEmpty()) {
             HomeUiState.Empty(
                 title = "No songs on this device",

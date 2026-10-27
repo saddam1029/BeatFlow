@@ -25,13 +25,19 @@ class DeleteSongUseCasesTest {
     }
 
     private class FakeDeviceSongRepository(
-        var deleteResult: DeleteDeviceSongResult = DeleteDeviceSongResult.Success
+        var deleteResult: DeleteDeviceSongResult = DeleteDeviceSongResult.Success,
+        var confirmResult: Result<Unit> = Result.success(Unit)
     ) : DeviceSongRepository {
         var lastDeletedContentUri: String? = null
+        var lastConfirmedContentUri: String? = null
         override suspend fun getDeviceSongs(): Result<List<Song>> = Result.success(emptyList())
         override suspend fun deleteDeviceSong(contentUri: String): DeleteDeviceSongResult {
             lastDeletedContentUri = contentUri
             return deleteResult
+        }
+        override suspend fun deleteDeviceSongConfirmed(contentUri: String): Result<Unit> {
+            lastConfirmedContentUri = contentUri
+            return confirmResult
         }
     }
 
@@ -90,5 +96,16 @@ class DeleteSongUseCasesTest {
 
         assertTrue(result is DeleteDeviceSongResult.Failure)
         assertEquals("Permission denied", (result as DeleteDeviceSongResult.Failure).message)
+    }
+
+    @Test
+    fun test_confirmDelete_callsRepository() = runBlocking {
+        val repo = FakeDeviceSongRepository()
+        val useCase = DeleteDeviceSongUseCase(repo)
+
+        val result = useCase.confirmDelete("content://media/external/audio/media/40")
+
+        assertTrue(result.isSuccess)
+        assertEquals("content://media/external/audio/media/40", repo.lastConfirmedContentUri)
     }
 }

@@ -29,15 +29,27 @@
         <item name="android:navigationBarColor">#121B26</item>
     </style>
 
-    <style name="Widget.BeatFlow.BottomSheet" parent="Widget.MaterialComponents.BottomSheet">
-        <item name="android:background">@android:color/transparent</item>
+    <style name="Widget.BeatFlow.BottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.BeatFlow.BottomSheet</item>
+        <item name="backgroundTint">#121B26</item>
+        <item name="strokeColor">#1E293B</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <style name="ShapeAppearance.BeatFlow.BottomSheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">24dp</item>
+        <item name="cornerSizeTopRight">24dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
     </style>
 
     <style name="Theme.BeatFlow.AlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
         <item name="shapeAppearanceOverlay">@style/ShapeAppearance.BeatFlow.Dialog</item>
         <item name="colorSurface">#121B26</item>
+        <item name="colorOnSurface">#FFFFFF</item>
         <item name="android:textColorPrimary">#FFFFFF</item>
-        <item name="android:textColorSecondary">#8E9AA8</item>
+        <item name="android:textColorSecondary">#FFFFFF</item>
         <item name="colorPrimary">@color/home_accent_cyan</item>
     </style>
 

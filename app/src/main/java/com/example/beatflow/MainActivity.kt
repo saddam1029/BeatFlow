@@ -128,6 +128,24 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
+        if (savedInstanceState != null && savedInstanceState.containsKey(KEY_PENDING_DELETE_ID)) {
+            val id = savedInstanceState.getLong(KEY_PENDING_DELETE_ID)
+            val name = savedInstanceState.getString(KEY_PENDING_DELETE_NAME).orEmpty()
+            val artist = savedInstanceState.getString(KEY_PENDING_DELETE_ARTIST).orEmpty()
+            val preview = savedInstanceState.getString(KEY_PENDING_DELETE_PREVIEW)
+            val isLocal = savedInstanceState.getBoolean(KEY_PENDING_DELETE_LOCAL, true)
+            pendingDeleteSong = Song(
+                trackId = id,
+                trackName = name,
+                artistName = artist,
+                artworkUrl = null,
+                previewUrl = preview,
+                trackViewUrl = null,
+                durationMs = 0L,
+                isLocal = isLocal
+            )
+        }
+
         initViews()
         applyWindowInsets()
         setupTopBarActions()
@@ -245,6 +263,8 @@ class MainActivity : AppCompatActivity() {
     private fun getRequiredAudioPermission(): String {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Manifest.permission.READ_MEDIA_AUDIO
+        } else if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
         } else {
             Manifest.permission.READ_EXTERNAL_STORAGE
         }
@@ -518,15 +538,15 @@ class MainActivity : AppCompatActivity() {
                             if (!artworkUrl.isNullOrBlank()) {
                                 Glide.with(this@MainActivity)
                                     .load(artworkUrl)
-                                    .placeholder(R.drawable.bg_artwork_placeholder)
-                                    .error(R.drawable.bg_artwork_error)
-                                    .fallback(R.drawable.bg_artwork_placeholder)
+                                    .placeholder(R.drawable.ic_beatflow_logo)
+                                    .error(R.drawable.ic_beatflow_logo)
+                                    .fallback(R.drawable.ic_beatflow_logo)
                                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                                     .centerCrop()
                                     .into(ivMiniPlayerArt)
                             } else {
                                 Glide.with(this@MainActivity).clear(ivMiniPlayerArt)
-                                ivMiniPlayerArt.setImageResource(R.drawable.bg_artwork_placeholder)
+                                ivMiniPlayerArt.setImageResource(R.drawable.ic_beatflow_logo)
                             }
                         }
                         updateAdapterPlayback()
@@ -637,5 +657,30 @@ class MainActivity : AppCompatActivity() {
         val currentTrackId = viewModel.currentPlayingSong.value?.trackId
         val isPlaying = viewModel.isPlaying.value
         songAdapter.updatePlaybackState(currentTrackId, isPlaying)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        pendingDeleteSong?.let { song ->
+            outState.putLong(KEY_PENDING_DELETE_ID, song.trackId)
+            outState.putString(KEY_PENDING_DELETE_NAME, song.trackName)
+            outState.putString(KEY_PENDING_DELETE_ARTIST, song.artistName)
+            outState.putString(KEY_PENDING_DELETE_PREVIEW, song.previewUrl)
+            outState.putBoolean(KEY_PENDING_DELETE_LOCAL, song.isLocal)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        exitBottomSheetDialog?.dismiss()
+        exitBottomSheetDialog = null
+    }
+
+    companion object {
+        private const val KEY_PENDING_DELETE_ID = "key_pending_delete_id"
+        private const val KEY_PENDING_DELETE_NAME = "key_pending_delete_name"
+        private const val KEY_PENDING_DELETE_ARTIST = "key_pending_delete_artist"
+        private const val KEY_PENDING_DELETE_PREVIEW = "key_pending_delete_preview"
+        private const val KEY_PENDING_DELETE_LOCAL = "key_pending_delete_local"
     }
 }

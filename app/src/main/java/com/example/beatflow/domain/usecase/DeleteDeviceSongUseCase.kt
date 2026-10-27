@@ -12,4 +12,8 @@ class DeleteDeviceSongUseCase(
     suspend operator fun invoke(contentUri: String): DeleteDeviceSongResult {
         return repository.deleteDeviceSong(contentUri)
     }
+
+    suspend fun confirmDelete(contentUri: String): Result<Unit> {
+        return repository.deleteDeviceSongConfirmed(contentUri)
+    }
 }

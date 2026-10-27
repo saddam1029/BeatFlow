@@ -16,6 +16,7 @@ class GetDeviceSongsUseCaseTest {
     ) : DeviceSongRepository {
         override suspend fun getDeviceSongs(): Result<List<Song>> = result
         override suspend fun deleteDeviceSong(contentUri: String): DeleteDeviceSongResult = DeleteDeviceSongResult.Success
+        override suspend fun deleteDeviceSongConfirmed(contentUri: String): Result<Unit> = Result.success(Unit)
     }
 
     @Test

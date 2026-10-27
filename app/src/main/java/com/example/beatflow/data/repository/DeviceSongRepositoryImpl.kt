@@ -6,6 +6,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 import com.example.beatflow.domain.model.DeleteDeviceSongResult
 import com.example.beatflow.domain.model.Song
 import com.example.beatflow.domain.repository.DeviceSongRepository
@@ -31,13 +32,24 @@ class DeviceSongRepositoryImpl(
 
             val collection: Uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
 
-            val projection = arrayOf(
-                MediaStore.Audio.Media._ID,
-                MediaStore.Audio.Media.TITLE,
-                MediaStore.Audio.Media.ARTIST,
-                MediaStore.Audio.Media.DURATION,
-                MediaStore.Audio.Media.ALBUM_ID
-            )
+            val projection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                arrayOf(
+                    MediaStore.Audio.Media._ID,
+                    MediaStore.Audio.Media.TITLE,
+                    MediaStore.Audio.Media.ARTIST,
+                    MediaStore.Audio.Media.DURATION,
+                    MediaStore.Audio.Media.ALBUM_ID,
+                    MediaStore.Audio.Media.VOLUME_NAME
+                )
+            } else {
+                arrayOf(
+                    MediaStore.Audio.Media._ID,
+                    MediaStore.Audio.Media.TITLE,
+                    MediaStore.Audio.Media.ARTIST,
+                    MediaStore.Audio.Media.DURATION,
+                    MediaStore.Audio.Media.ALBUM_ID
+                )
+            }
 
             // Filter for music tracks and exclude empty/invalid durations
             val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
@@ -55,6 +67,11 @@ class DeviceSongRepositoryImpl(
                 val artistColumn = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST)
                 val durationColumn = cursor.getColumnIndex(MediaStore.Audio.Media.DURATION)
                 val albumIdColumn = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID)
+                val volumeNameColumn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    cursor.getColumnIndex(MediaStore.Audio.Media.VOLUME_NAME)
+                } else {
+                    -1
+                }
 
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idColumn)
@@ -70,8 +87,17 @@ class DeviceSongRepositoryImpl(
                     val duration = if (durationColumn != -1) cursor.getLong(durationColumn) else 0L
                     val albumId = if (albumIdColumn != -1) cursor.getLong(albumIdColumn) else -1L
 
-                    // Construct unique content URI for the local audio track
-                    val contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)
+                    // Construct volume-specific or external canonical content URI for the local audio track
+                    val contentUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && volumeNameColumn != -1) {
+                        val volumeName = cursor.getString(volumeNameColumn)
+                        if (!volumeName.isNullOrBlank()) {
+                            ContentUris.withAppendedId(MediaStore.Audio.Media.getContentUri(volumeName), id)
+                        } else {
+                            ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)
+                        }
+                    } else {
+                        ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)
+                    }
 
                     // Construct album artwork URI if a valid album ID is present
                     val artworkUriString = if (albumId > 0) {
@@ -106,28 +132,68 @@ class DeviceSongRepositoryImpl(
     override suspend fun deleteDeviceSong(contentUri: String): DeleteDeviceSongResult = withContext(ioDispatcher) {
         try {
             val uri = Uri.parse(contentUri)
-            // On Android 11+ (API 30+), MediaStore.createDeleteRequest is the official scoped storage deletion API
+            Log.d("BeatFlowDelete", "deleteDeviceSong called. SDK=${Build.VERSION.SDK_INT}, URI=$uri")
+            // On Android 11+ (including Android 14, API 30+), MediaStore.createDeleteRequest is the official scoped storage API
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 val pendingIntent = MediaStore.createDeleteRequest(context.contentResolver, listOf(uri))
+                Log.d("BeatFlowDelete", "Created createDeleteRequest PendingIntent for API >= 30")
                 DeleteDeviceSongResult.RequiresConfirmation(pendingIntent.intentSender)
-            } else {
+            } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
+                // On Android 10 (API 29), attempt deletion; if unauthorized, catch RecoverableSecurityException
                 try {
                     val deletedRows = context.contentResolver.delete(uri, null, null)
+                    Log.d("BeatFlowDelete", "API 29 delete rows: $deletedRows")
                     if (deletedRows > 0) {
                         DeleteDeviceSongResult.Success
                     } else {
                         DeleteDeviceSongResult.Failure("File not found or could not be deleted")
                     }
                 } catch (e: SecurityException) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && e is RecoverableSecurityException) {
+                    android.util.Log.w("BeatFlowDelete", "API 29 SecurityException: ${e.javaClass.simpleName}: ${e.message}")
+                    if (e is RecoverableSecurityException) {
                         DeleteDeviceSongResult.RequiresConfirmation(e.userAction.actionIntent.intentSender)
                     } else {
                         DeleteDeviceSongResult.Failure(e.localizedMessage ?: "Permission denied to delete file")
                     }
                 }
+            } else {
+                // Android 9 and older (API <= 28): standard ContentResolver deletion with WRITE_EXTERNAL_STORAGE
+                try {
+                    val deletedRows = context.contentResolver.delete(uri, null, null)
+                    Log.d("BeatFlowDelete", "API <= 28 delete rows: $deletedRows")
+                    if (deletedRows > 0) {
+                        DeleteDeviceSongResult.Success
+                    } else {
+                        DeleteDeviceSongResult.Failure("File not found or could not be deleted")
+                    }
+                } catch (e: SecurityException) {
+                    Log.e("BeatFlowDelete", "API <= 28 SecurityException: ${e.message}", e)
+                    DeleteDeviceSongResult.Failure("Write storage permission is required to delete files on this device.")
+                }
             }
         } catch (e: Exception) {
+            android.util.Log.e("BeatFlowDelete", "deleteDeviceSong exception: ${e.javaClass.simpleName}: ${e.message}", e)
             DeleteDeviceSongResult.Failure(e.localizedMessage ?: "Failed to delete audio file")
+        }
+    }
+
+    override suspend fun deleteDeviceSongConfirmed(contentUri: String): Result<Unit> = withContext(ioDispatcher) {
+        try {
+            val uri = Uri.parse(contentUri)
+            android.util.Log.d("BeatFlowDelete", "confirmDelete for SDK=${Build.VERSION.SDK_INT}, uri=$uri")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // On Android 11+ (API 30+), createDeleteRequest already deleted the file upon user approval.
+                android.util.Log.d("BeatFlowDelete", "Skipping contentResolver.delete on API >= 30 as createDeleteRequest handled deletion.")
+                Result.success(Unit)
+            } else {
+                // Used after user grants confirmation on Android 10 API 29
+                val deletedRows = context.contentResolver.delete(uri, null, null)
+                android.util.Log.d("BeatFlowDelete", "deleteRows=$deletedRows for URI=$uri")
+                Result.success(Unit)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("BeatFlowDelete", "Exception in confirmDelete: ${e.javaClass.simpleName}: ${e.message}", e)
+            Result.failure(e)
         }
     }
 }
