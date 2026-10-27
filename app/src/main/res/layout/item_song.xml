@@ -9,7 +9,7 @@
     android:layout_marginHorizontal="12dp"
     android:layout_marginVertical="4dp"
     app:cardBackgroundColor="@color/home_surface"
-    app:cardCornerRadius="12dp"
+    app:cardCornerRadius="@dimen/_9sdp"
     app:cardElevation="0dp"
     app:strokeColor="@color/home_divider"
     app:strokeWidth="1dp">
@@ -17,7 +17,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="10dp">
+        android:padding="@dimen/_6sdp">
 
         <!--
             Album artwork container.
@@ -25,10 +25,10 @@
         -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardAlbumArt"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
+            android:layout_width="@dimen/_47sdp"
+            android:layout_height="@dimen/_47sdp"
             app:cardBackgroundColor="@color/home_surface_elevated"
-            app:cardCornerRadius="8dp"
+            app:cardCornerRadius="@dimen/_5sdp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -48,13 +48,13 @@
             android:id="@+id/tvTrackName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/_10sdp"
             android:layout_marginEnd="8dp"
             android:ellipsize="end"
             android:fontFamily="sans-serif-medium"
             android:maxLines="1"
             android:textColor="@color/home_text_primary"
-            android:textSize="15sp"
+            android:textSize="@dimen/_12sdp"
             app:layout_constraintBottom_toTopOf="@+id/tvArtistName"
             app:layout_constraintEnd_toStartOf="@+id/btnPlaySong"
             app:layout_constraintStart_toEndOf="@+id/cardAlbumArt"
@@ -67,14 +67,14 @@
             android:id="@+id/tvArtistName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/_10sdp"
             android:layout_marginTop="2dp"
             android:layout_marginEnd="8dp"
             android:ellipsize="end"
             android:fontFamily="sans-serif"
             android:maxLines="1"
             android:textColor="@color/home_text_secondary"
-            android:textSize="13sp"
+            android:textSize="@dimen/_9sdp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/btnPlaySong"
             app:layout_constraintStart_toEndOf="@+id/cardAlbumArt"
@@ -84,11 +84,11 @@
         <!-- Play / Pause Action Button -->
         <ImageButton
             android:id="@+id/btnPlaySong"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="@dimen/_36sdp"
+            android:layout_height="@dimen/_36sdp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/cd_play_song"
-            android:padding="8dp"
+            android:padding="@dimen/_5sdp"
             android:src="@android:drawable/ic_media_play"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/btnSongOverflow"
@@ -98,11 +98,11 @@
         <!-- Overflow Menu Button for Future Delete and Share -->
         <ImageButton
             android:id="@+id/btnSongOverflow"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="@dimen/_36sdp"
+            android:layout_height="@dimen/_36sdp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/cd_song_overflow"
-            android:padding="8dp"
+            android:padding="@dimen/_5sdp"
             android:src="@android:drawable/ic_menu_more"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
