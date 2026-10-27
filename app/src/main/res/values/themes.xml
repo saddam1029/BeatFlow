@@ -14,6 +14,7 @@
         <item name="android:windowLightStatusBar">false</item>
         <item name="colorPrimary">@color/home_accent_cyan</item>
         <item name="colorSecondary">@color/home_accent_cyan</item>
+        <item name="android:windowBackground">@color/splash_background</item>
     </style>
 
     <style name="TabTextStyle" parent="TextAppearance.Design.Tab">

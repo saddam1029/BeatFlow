@@ -6,8 +6,8 @@
 
     <!-- Home Screen Strings -->
     <string name="home_title">Beat Flow</string>
-    <string name="tab_online_songs">Online Songs</string>
-    <string name="tab_device_songs">Device Songs</string>
+    <string name="tab_online_songs">Discover</string>
+    <string name="tab_device_songs">My Music</string>
     <string name="home_section_all_songs">All songs</string>
     <string name="songs_count_format">%1$d songs</string>
     <string name="empty_songs_title">No Songs Available</string>

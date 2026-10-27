@@ -2,6 +2,8 @@ package com.example.beatflow.data.playback
 
 import android.content.ComponentName
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
@@ -24,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 /**
  * Media3 implementation of MusicPlayer that controls playback by binding to
@@ -106,7 +109,19 @@ class Media3MusicPlayer(
                 _isPlaying.value = false
                 _isBuffering.value = false
                 stopProgressTracker()
-                _playbackError.value = "Playback error: ${error.localizedMessage ?: "Unable to stream audio preview"}"
+                val errorMsg = error.localizedMessage?.lowercase(Locale.ROOT) ?: ""
+                val isNetworkErr = errorMsg.contains("unable to resolve host") ||
+                        errorMsg.contains("connect") ||
+                        errorMsg.contains("timeout") ||
+                        errorMsg.contains("network") ||
+                        error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
+                        error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
+
+                _playbackError.value = if (isNetworkErr) {
+                    "No internet connection. Music can't play."
+                } else {
+                    "Playback error: ${error.localizedMessage ?: "Unable to stream audio preview"}"
+                }
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -169,6 +184,12 @@ class Media3MusicPlayer(
         )
         if (!isValidUri) {
             _playbackError.value = "Audio is not available for \"${song.trackName}\"."
+            return
+        }
+
+        val isOnlineUrl = previewUrl.startsWith("http://", ignoreCase = true) || previewUrl.startsWith("https://", ignoreCase = true)
+        if (isOnlineUrl && !isNetworkAvailable()) {
+            _playbackError.value = "No internet connection. Music can't play."
             return
         }
 
@@ -250,5 +271,12 @@ class Media3MusicPlayer(
         controllerFuture?.let { MediaController.releaseFuture(it) }
         controllerFuture = null
         mediaController = null
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 }
