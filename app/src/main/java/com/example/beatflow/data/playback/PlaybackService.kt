@@ -27,6 +27,7 @@ class PlaybackService : MediaSessionService() {
             .setAudioAttributes(AudioAttributes.DEFAULT, /* handleAudioFocus= */ true)
             .setHandleAudioBecomingNoisy(true)
             .build()
+        player.repeatMode = ExoPlayer.REPEAT_MODE_ONE
 
         // Intent to return to MainActivity when notification is tapped
         val openAppIntent = Intent(this, MainActivity::class.java).apply {

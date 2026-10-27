@@ -190,6 +190,7 @@ class Media3MusicPlayer(
                 .build()
 
             controller.setMediaItem(mediaItem)
+            controller.repeatMode = Player.REPEAT_MODE_ONE
             controller.prepare()
             controller.play()
         } else {
