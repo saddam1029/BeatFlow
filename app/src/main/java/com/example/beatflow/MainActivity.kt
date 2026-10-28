@@ -124,6 +124,42 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Track whether notification permission has been requested during this session to avoid spamming prompts
+    private var hasRequestedNotificationPermission = false
+
+    // Runtime permission launcher for notifications on Android 13+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        // Playback and app continue regardless of whether permission is granted or denied
+    }
+
+    private fun checkAndRequestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permission = Manifest.permission.POST_NOTIFICATIONS
+            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                if (!hasRequestedNotificationPermission) {
+                    hasRequestedNotificationPermission = true
+                    if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
+                        MaterialAlertDialogBuilder(this, R.style.Theme_BeatFlow_AlertDialog)
+                            .setTitle(getString(R.string.notification_permission_title))
+                            .setMessage(getString(R.string.notification_permission_message))
+                            .setPositiveButton(getString(R.string.btn_allow)) { dialog, _ ->
+                                dialog.dismiss()
+                                notificationPermissionLauncher.launch(permission)
+                            }
+                            .setNegativeButton(getString(R.string.btn_cancel)) { dialog, _ ->
+                                dialog.dismiss()
+                            }
+                            .show()
+                    } else {
+                        notificationPermissionLauncher.launch(permission)
+                    }
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -348,6 +384,7 @@ class MainActivity : AppCompatActivity() {
             },
             onAdDismissedOrFailed = {
                 viewModel.playSong(song)
+                checkAndRequestNotificationPermission()
             }
         )
     }

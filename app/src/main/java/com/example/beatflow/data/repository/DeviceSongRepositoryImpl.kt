@@ -13,6 +13,7 @@ import com.example.beatflow.domain.repository.DeviceSongRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * Concrete implementation of DeviceSongRepository that queries local audio
@@ -129,6 +130,44 @@ class DeviceSongRepositoryImpl(
         }
     }
 
+    private fun deletePhysicalFileIfPossible(uri: Uri): Boolean {
+        var filePath: String? = null
+        try {
+            val projection = arrayOf(MediaStore.Audio.Media.DATA)
+            context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val dataColumn = cursor.getColumnIndex(MediaStore.Audio.Media.DATA)
+                    if (dataColumn != -1) {
+                        filePath = cursor.getString(dataColumn)
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // Ignore query failure
+        }
+
+        val deletedRows = try {
+            context.contentResolver.delete(uri, null, null)
+        } catch (_: Exception) {
+            0
+        }
+
+        val path = filePath
+        if (!path.isNullOrBlank()) {
+            try {
+                val file = File(path)
+                if (file.exists()) {
+                    file.delete()
+                }
+            } catch (_: Exception) {
+                // Ignore file delete failure
+            }
+        }
+
+        val fileGone = path.isNullOrBlank() || !File(path).exists()
+        return deletedRows > 0 || fileGone
+    }
+
     override suspend fun deleteDeviceSong(contentUri: String): DeleteDeviceSongResult = withContext(ioDispatcher) {
         try {
             val uri = Uri.parse(contentUri)
@@ -139,7 +178,7 @@ class DeviceSongRepositoryImpl(
                 Log.d("BeatFlowDelete", "Created createDeleteRequest PendingIntent for API >= 30")
                 DeleteDeviceSongResult.RequiresConfirmation(pendingIntent.intentSender)
             } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
-                // On Android 10 (API 29), attempt deletion; if unauthorized, catch RecoverableSecurityException
+                // On Android 10 (API 29), attempt deletion; if unauthorized, throws RecoverableSecurityException (SecurityException)
                 try {
                     val deletedRows = context.contentResolver.delete(uri, null, null)
                     Log.d("BeatFlowDelete", "API 29 delete rows: $deletedRows")
@@ -159,9 +198,9 @@ class DeviceSongRepositoryImpl(
             } else {
                 // Android 9 and older (API <= 28): standard ContentResolver deletion with WRITE_EXTERNAL_STORAGE
                 try {
-                    val deletedRows = context.contentResolver.delete(uri, null, null)
-                    Log.d("BeatFlowDelete", "API <= 28 delete rows: $deletedRows")
-                    if (deletedRows > 0) {
+                    val success = deletePhysicalFileIfPossible(uri)
+                    Log.d("BeatFlowDelete", "API <= 28 delete success: $success")
+                    if (success) {
                         DeleteDeviceSongResult.Success
                     } else {
                         DeleteDeviceSongResult.Failure("File not found or could not be deleted")
@@ -182,13 +221,10 @@ class DeviceSongRepositoryImpl(
             val uri = Uri.parse(contentUri)
             android.util.Log.d("BeatFlowDelete", "confirmDelete for SDK=${Build.VERSION.SDK_INT}, uri=$uri")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // On Android 11+ (API 30+), createDeleteRequest already deleted the file upon user approval.
-                android.util.Log.d("BeatFlowDelete", "Skipping contentResolver.delete on API >= 30 as createDeleteRequest handled deletion.")
                 Result.success(Unit)
             } else {
-                // Used after user grants confirmation on Android 10 API 29
                 val deletedRows = context.contentResolver.delete(uri, null, null)
-                android.util.Log.d("BeatFlowDelete", "deleteRows=$deletedRows for URI=$uri")
+                Log.d("BeatFlowDelete", "confirmDelete API 29 deleteRows=$deletedRows for URI=$uri")
                 Result.success(Unit)
             }
         } catch (e: Exception) {

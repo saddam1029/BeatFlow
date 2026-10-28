@@ -49,4 +49,7 @@
     <string name="btn_exit_app">Yes, exit</string>
     <string name="share_song_title">Share song</string>
     <string name="share_file_unavailable">Audio file is not available to share</string>
+    <string name="notification_permission_title">Enable Notifications</string>
+    <string name="notification_permission_message">Allow notifications to see media playback controls and track progress while listening in the background.</string>
+    <string name="btn_allow">Allow</string>
 </resources>
